@@ -3,4 +3,3 @@ b = 4
 
 c = a + b
 d = 5
-print(d)

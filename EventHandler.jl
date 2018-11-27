@@ -19,6 +19,7 @@ function run(asts)
   for ast in asts
     try
       Core.eval(Main, ast)
+      line += 1
     catch err
       # if we run to a breakpoint
       # we will catch an exception and collect info

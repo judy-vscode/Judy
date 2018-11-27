@@ -2,6 +2,7 @@ using Sockets
 import JSON
 
 include("EventHandler.jl")
+include("MsgHandler.jl")
 
 server = listen(8000)
 while true
@@ -12,18 +13,16 @@ while true
       recv = readline(sock, keep=true)
 
       # handle events
-      #require = JSON.parse(recv)
-      #println(require)
+      len, id, method, params = MsgHandler.msgParse(recv)
+      println("recv: len: $(len), id: $(id), method: $(method), params: $(params)")
+
       asts = EventHandler.readSourceToAST(ARGS[1])
       EventHandler.run(asts)
-      ##print(ast)
 
       # prepare respond
-      respond = Dict("res" => "return results")
-      respond = JSON.json(respond)
+      response = MsgHandler.msgCreate(id, "result")
 
       # send events
-      write(sock, respond)
-      @show recv
+      write(sock, response)
     end
 end

@@ -12,10 +12,10 @@ while true
       recv = readline(sock, keep=true)
 
       # handle events
-      require = JSON.parse(recv)
+      #require = JSON.parse(recv)
       #println(require)
-      ##println(ARGS[1])
-      ##ast = EventHandler.readSourceToAST(ARGS[1])
+      asts = EventHandler.readSourceToAST(ARGS[1])
+      EventHandler.run(asts)
       ##print(ast)
 
       # prepare respond

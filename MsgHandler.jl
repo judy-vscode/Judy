@@ -1,6 +1,7 @@
 module MsgHandler
 
 import JSON
+include("EventHandler.jl")
 
 # handle comming msg
 # return msg length, id, method, params
@@ -16,6 +17,9 @@ function msgParse(msg)
   id = json_obj["id"]
   method = json_obj["method"]
   params = json_obj["params"]
+  # len, id, method, params = MsgHandler.msgParse(recv)
+  println("recv: len: $(len), id: $(id), method: $(method), params: $(params)")
+
   return (len, id, method, params)
 
 end
@@ -30,9 +34,29 @@ function msgCreate(id, result)
   msg = ("0" ^ (8 - length(len))) * len * msg
   return msg
 end
-  
 
+struct NewBreakPoints{
+  filepath::AbstractString
+  lines::AbstractVector{Integer}
+}
 
-
+function msgHandle(msg)
+  len, id, method, params = msgParse(msg)
+  if method == "continue":
+    EventHandler.continue()
+  elseif method == "step":
+    EventHandler.step()
+  elseif method == "setBreakPoints":
+    filePath = param["path"]
+    lineno = param["lines"]
+    EventHandler.setBreanPoints(filePath, lineno)
+  elseif method == "launch":
+    EventHandler.run()
+  elseif method == "clearBreakPoints":
+    EventHandler.clearBreakPoints()
+  else:
+    ErrorMsg = "Undefined Message Method"
+    EventHandler.Exception(ErrorMsg)
+  return
 
 end

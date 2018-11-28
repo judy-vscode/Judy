@@ -4,7 +4,7 @@ import JSON
 include("EventHandler.jl")
 include("MsgHandler.jl")
 
-server = listen(8000)
+server = listen(18001)
 while true
     sock = accept(server)
     while isopen(sock)
@@ -13,11 +13,11 @@ while true
       recv = readline(sock, keep=true)
 
       # handle events
-      len, id, method, params = MsgHandler.msgParse(recv)
-      println("recv: len: $(len), id: $(id), method: $(method), params: $(params)")
+      MsgHandler.msgHandle(recv)
 
-      asts = EventHandler.readSourceToAST(ARGS[1])
-      EventHandler.run(asts)
+
+      # asts = EventHandler.readSourceToAST(ARGS[1])
+      # EventHandler.run(asts)
 
       # prepare respond
       response = MsgHandler.msgCreate(id, "result")

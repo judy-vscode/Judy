@@ -7,7 +7,7 @@ line = 0
 function readSourceToAST(file)
   global asts
   global blocks
-  global line
+  line = 0
   s = ""
   # recording blocks such as a function
   block_start = 0
@@ -19,8 +19,8 @@ function readSourceToAST(file)
       ex = parseInputLine(s)
       if (isa(ex, Expr) && ex.head === :incomplete)
         s *= "\n"
-        if block_start != 0
-          block_start = 0
+        if block_start == 0
+          block_start = line
         end
         continue
       else
@@ -44,9 +44,10 @@ end
 function run()
   global asts
   global line
+  global blocks
   for ast in asts
     try
-      line += 1
+      updateLine()
       Core.eval(Main, ast)
     catch err
       # if we run to a breakpoint
@@ -61,30 +62,35 @@ end
 function next()
   global asts
   global line
-  if line == lastindex(asts)
-    return
+  ast_index = getAstIndex()
+  if ast_index == lastindex(asts)
+    return false
   end
 
   while true
     try
-      line += 1
-      Core.eval(Main, asts[line])
+      updateLine()
+      ast_index = getAstIndex()
+      Core.eval(Main, asts[ast_index])
     catch err
       # if we meet a breakpoint
       # we just ignore it
-      continue
+      println("Error in next")
+      return false
+      #continue
     end
     break
   end
-  return (asts, line + 1)
+  return true
 end
 
 function continous(status)
   global asts
   global line
-  for ast in asts[line + 1 : end]
+  ast_index = getAstIndex()
+  for ast in asts[ast_index + 1 : end]
     try
-      line += 1
+      updateLine()
       Core.eval(Main, ast)
     catch err
       # catch breakpoint
@@ -94,6 +100,41 @@ function continous(status)
   # exit normally
   return
 end
+
+# update line for run/next/continous call
+function updateLine()
+  global blocks
+  global line
+  for range in blocks
+    if line == range[1]
+      line += range[2] - range[1] + 1
+      return
+    elseif range[1] > line
+      break
+    end
+  end
+  line += 1
+end
+
+# get AstIndex from current line number
+function getAstIndex()
+  global blocks
+  global line
+  global asts
+  base = line
+  ofs = 0
+  for block in blocks
+    if block[1] <= line <= block[2]
+      base = block[1]
+      break
+    elseif block[1] > line
+      break
+    end
+    ofs += block[2] - block[1]
+  end
+  return base - ofs
+end
+  
 
 function parseInputLine(s::String; filename::String="none", depwarn=true)
   # For now, assume all parser warnings are depwarns

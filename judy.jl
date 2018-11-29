@@ -4,20 +4,20 @@ import JSON
 include("EventHandler.jl")
 include("MsgHandler.jl")
 
-server = listen(18001)
+server = listen(8000)
 while true
     sock = accept(server)
     while isopen(sock)
 
       # get events
-      recv = readline(sock, keep=true)
+      recv = MsgHandler.msgRecv(sock)
 
       # handle events
       MsgHandler.msgHandle(recv)
 
 
-      # asts = EventHandler.readSourceToAST(ARGS[1])
-      # EventHandler.run(asts)
+      asts = EventHandler.readSourceToAST(ARGS[1])
+      EventHandler.run(asts)
 
       # prepare respond
       response = MsgHandler.msgCreate(id, "result")

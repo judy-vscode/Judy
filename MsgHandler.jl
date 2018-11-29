@@ -3,15 +3,27 @@ module MsgHandler
 import JSON
 include("EventHandler.jl")
 
+struct UnKnownMethod <: Exception end 
+
+# recieve message from server
+# for test: 00000064{"jsonrpc": "2.0", "id": 1, "method": "launch", "params": "abc"}
+function msgRecv(sock)
+  # read comming message length
+  len = read(sock, 8)
+  len_str = ""
+  for num in len
+    len_str = len_str * "$num"
+  end
+  len = parse(Int, len_str)
+  msg = read(sock, len)
+  return msg
+end
+
 # handle comming msg
 # return msg length, id, method, params
 function msgParse(msg)
-  # get first 8 charaters as msg length
-  SubString(msg, 1, 8)
-  len = parse(Int, SubString(msg, 1, 8))
 
-  true_msg = SubString(msg, 9, lastindex(msg))
-  json_obj = JSON.parse(true_msg)
+  json_obj = JSON.parse(msg)
 
   # get msg id
   id = json_obj["id"]
@@ -35,28 +47,37 @@ function msgCreate(id, result)
   return msg
 end
 
-struct NewBreakPoints{
+struct NewBreakPoints
   filepath::AbstractString
   lines::AbstractVector{Integer}
-}
+end
 
 function msgHandle(msg)
-  len, id, method, params = msgParse(msg)
+  try
+    len, id, method, params = msgParse(msg)
+  catch
+    println("Error msg: $(msg) | Not a json rpc format")
+    return
+  end
+
+  # call debugger
   if method == "continue":
-    EventHandler.continue()
+    EventHandler.continous()
   elseif method == "step":
     EventHandler.step()
   elseif method == "setBreakPoints":
     filePath = param["path"]
     lineno = param["lines"]
-    EventHandler.setBreanPoints(filePath, lineno)
+    EventHandler.setBreakPoints(filePath, lineno)
   elseif method == "launch":
     EventHandler.run()
   elseif method == "clearBreakPoints":
     EventHandler.clearBreakPoints()
   else:
-    ErrorMsg = "Undefined Message Method"
-    EventHandler.Exception(ErrorMsg)
-  return
+    throw(UnKnownMethod("$(method) can't be called"))
+  end
 
+  return
 end
+
+end # MsgHandler Module

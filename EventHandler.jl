@@ -3,6 +3,8 @@ module EventHandler
 asts = []
 blocks = []
 line = 0
+struct NotImplementedError <: Exception end
+struct BreakPointStop <: Exception end
 
 function readSourceToAST(file)
   global asts
@@ -100,6 +102,20 @@ function continous(status)
   # exit normally
   return
 end
+
+function step()
+  throw(NotImplementedError("step have not been implemented"))
+end
+
+function setBreakPoints(filePath, lineno)
+  throw(NotImplementedError("setBreakPoints have not been implemented"))
+end
+
+function clearBreakPoints()
+  throw(NotImplementedError("clearBreakPoints have not been implemented"))
+end
+
+function Exception()
 
 # update line for run/next/continous call
 function updateLine()

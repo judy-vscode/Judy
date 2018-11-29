@@ -115,8 +115,6 @@ function clearBreakPoints()
   throw(NotImplementedError("clearBreakPoints have not been implemented"))
 end
 
-function Exception()
-
 # update line for run/next/continous call
 function updateLine()
   global blocks

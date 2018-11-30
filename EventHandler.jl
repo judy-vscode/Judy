@@ -3,6 +3,12 @@ module EventHandler
 asts = []
 blocks = []
 line = 0
+struct BreakPoints
+  filepath::AbstractString
+  lineno::Array{Int64,1}
+end
+
+bp::BreakPoints
 struct NotImplementedError <: Exception end
 struct BreakPointStop <: Exception end
 
@@ -47,6 +53,7 @@ function run()
   global asts
   global line
   global blocks
+  global bp
   for ast in asts
     try
       updateLine()
@@ -54,12 +61,19 @@ function run()
     catch err
       # if we run to a breakpoint
       # we will catch an exception and collect info
+      if err isa BreakPointStop
+        Break()
       return
     end
   end
   # exit normally
   return ([], 0)
 end
+
+function Break()
+  #collected info and return
+end
+
 
 function stepOver()
   global asts
@@ -95,7 +109,7 @@ function continous(status)
       updateLine()
       Core.eval(Main, ast)
     catch err
-      # catch breakpoint
+      println(err)
       return
     end
   end
@@ -108,7 +122,9 @@ function stepIn()
 end
 
 function setBreakPoints(filePath, lineno)
-  throw(NotImplementedError("setBreakPoints have not been implemented"))
+  global bp
+  bp.filepath = filePath
+  bp.lineno = lineno
 end
 
 function clearBreakPoints()
@@ -128,6 +144,16 @@ function updateLine()
     end
   end
   line += 1
+  if checkBreakPoint(line)
+    throw(BreakPointStop())
+end
+
+function checkBreakPoint(line)
+  global bp
+  if line in bp.lineno
+    return true
+  else
+    return false
 end
 
 # get AstIndex from current line number

@@ -67,9 +67,4 @@ function eventCreate(params)
 end
 
 
-struct NewBreakPoints
-  filepath::AbstractString
-  lines::AbstractVector{Integer}
-end
-
 end # MsgHandler Module

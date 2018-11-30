@@ -36,7 +36,7 @@ while isopen(sock)
     if !haskey(params, "stopOnEntry")
       EventHandler.run()
     end
-    event = eventCreate(Dict("method" => "stopOnEntry",
+    event = MsgHandler.eventCreate(Dict("method" => "stopOnEntry",
                              "thread" => 1))
     print(client, event)
 

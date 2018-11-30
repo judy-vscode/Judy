@@ -61,7 +61,7 @@ function run()
   return ([], 0)
 end
 
-function next()
+function stepOver()
   global asts
   global line
   ast_index = getAstIndex()
@@ -103,7 +103,7 @@ function continous(status)
   return
 end
 
-function step()
+function stepIn()
   throw(NotImplementedError("step have not been implemented"))
 end
 

@@ -4,6 +4,8 @@ import JSON
 
 struct UnKnownMethod <: Exception end 
 
+event_id = 0
+
 # recieve message from server
 # for test: 00000064{"jsonrpc": "2.0", "id": 1, "method": "launch", "params": "abc"}
 function msgRecv(sock)
@@ -50,6 +52,20 @@ function msgCreate(id, result)
   msg = ("0" ^ (8 - length(len))) * len * msg
   return msg
 end
+
+# create event to notify adapter
+function eventCreate(params)
+  global event_id
+  event_id += 1
+  json_obj = Dict("jsonrpc" => "2.0",
+                  "id" => event_id,
+                  "params" => "$params")
+  msg = JSON.json(json_obj)
+  len = "$(length(msg))"
+  msg = ("0" ^ (8 - length(len))) * len * msg
+  return msg
+end
+
 
 struct NewBreakPoints
   filepath::AbstractString

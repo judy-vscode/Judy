@@ -5,36 +5,52 @@ include("EventHandler.jl")
 include("MsgHandler.jl")
 
 server = listen(8000)
-while true
-    sock = accept(server)
-    while isopen(sock)
+sock = accept(server)
+client = connect(18001)
 
-      # get events
-      msg = MsgHandler.msgRecv(sock)
+while isopen(sock)
 
-      # handle events
-      id, method, params = MsgHandler.msgParse(msg)
-      if method == "continue"
-        EventHandler.continous()
-      elseif method == "step"
-        EventHandler.step()
-      elseif method == "setBreakPoints"
-        filePath = param["path"]
-        lineno = param["lines"]
-        EventHandler.setBreakPoints(filePath, lineno)
-      elseif method == "launch"
-        EventHandler.readSourceToAST(ARGS[1])
-        EventHandler.run()
-      elseif method == "clearBreakPoints"
-        EventHandler.clearBreakPoints()
-      else
-        throw(MsgHandler.UnKnownMethod("$(method) can't be called"))
-      end
+  # get events
+  msg = MsgHandler.msgRecv(sock)
+  
+  result = ""
 
-      # prepare respond
-      response = MsgHandler.msgCreate(id, "result")
+  # handle events
+  id, method, params = MsgHandler.msgParse(msg)
+  if method == "continue"
+    EventHandler.continous()
 
-      # send events
-      write(sock, response)
+   elseif method == "step"
+    EventHandler.step()
+
+  elseif method == "setBreakPoints"
+    filePath = param["path"]
+    lineno = param["lines"]
+    EventHandler.setBreakPoints(filePath, lineno)
+
+  elseif method == "initialize"
+    EventHandler.readSourceToAST(ARGS[1])
+    # no content request for response
+
+  elseif method == "launch"
+    if !haskey(params, "stopOnEntry")
+      EventHandler.run()
     end
+    event = eventCreate(Dict("method" => "stopOnEntry",
+                             "thread" => 1))
+    print(client, event)
+
+  elseif method == "clearBreakPoints"
+    EventHandler.clearBreakPoints()
+
+  else
+    # throw(MsgHandler.UnKnownMethod("$(method) can't be called"))
+    result = "$method can't be called"
+  end
+
+  # prepare respond
+  response = MsgHandler.msgCreate(id, result)
+
+  # send events
+  write(sock, response)
 end

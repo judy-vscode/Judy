@@ -30,7 +30,7 @@ while isopen(sock)
 
   elseif method == "initialize"
     EventHandler.readSourceToAST(ARGS[1])
-    event = eventCreate(Dict("method" => "initialize"))
+    event = MsgHandler.eventCreate(Dict("method" => "initialize"))
     print(client, event)
 
   elseif method == "launch"

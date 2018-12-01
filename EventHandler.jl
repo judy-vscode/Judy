@@ -135,15 +135,16 @@ end
 function updateLine()
   global blocks
   global line
+  ofs = 1
   for range in blocks
     if line == range[1]
-      line += range[2] - range[1] + 1
-      return
+      ofs = range[2] - range[1] + 1
+      break
     elseif range[1] > line
       break
     end
   end
-  line += 1
+  line += ofs
   if checkBreakPoint(line)
     throw(BreakPointStop())
 end

@@ -20,7 +20,7 @@ while isopen(sock)
   if method == "continue"
     EventHandler.continous()
 
-   elseif method == "step"
+  elseif method == "step"
     EventHandler.step()
 
   elseif method == "setBreakPoints"
@@ -30,7 +30,8 @@ while isopen(sock)
 
   elseif method == "initialize"
     EventHandler.readSourceToAST(ARGS[1])
-    # no content request for response
+    event = eventCreate(Dict("method" => "initialize"))
+    print(client, event)
 
   elseif method == "launch"
     if !haskey(params, "stopOnEntry")

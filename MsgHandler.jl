@@ -15,7 +15,6 @@ function msgRecv(sock)
   for num in len
     len_str = len_str * string(Char(num))
   end
-  print 
   len = parse(Int, len_str)
   # read message
   msg_array = read(sock, len)

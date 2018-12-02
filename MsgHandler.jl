@@ -62,7 +62,7 @@ function eventCreate(params)
   event_id += 1
   json_obj = Dict("jsonrpc" => "2.0",
                   "id" => event_id,
-                  "params" => "$params")
+                  "params" => params)
   msg = JSON.json(json_obj)
   len = "$(length(msg))"
   msg = ("0" ^ (8 - length(len))) * len * msg

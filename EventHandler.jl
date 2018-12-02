@@ -2,20 +2,27 @@ module EventHandler
 
 asts = []
 blocks = []
-line = 0
+line = 1
+
+# break points logger
 mutable struct BreakPoints
   filepath::AbstractString
   lineno::Array{Int64,1}
 end
 
+# variable logger: vars["var_name"] = ("var_value", "var_type")
+vars = Dict()
+stacks = []
+errors = ""
 bp = BreakPoints("",[])
+
 struct NotImplementedError <: Exception end
 struct BreakPointStop <: Exception end
 
 function readSourceToAST(file)
   global asts
   global blocks
-  line = 1
+  line = 0
   s = ""
   # recording blocks such as a function
   block_start = 0
@@ -52,7 +59,6 @@ end
 function run()
   global asts
   global line
-  global blocks
   global bp
   line = 1
   for ast in asts
@@ -64,17 +70,38 @@ function run()
       # we will catch an exception and collect info
       if err isa BreakPointStop
         Break()
+      else
+        println(err)
       end
       return
     end
   end
   # exit normally
-  return ([], 0)
+  return
 end
 
+# update info from this point
 function Break()
-  #collected info and return
-  
+  global line
+  println("hit BreakPoint: ", line)
+  # collect variable information -- only global variable
+  global vars
+  vars = Dict()
+  for var in names(Main)[5:end]
+    var_name = string(var)
+    #var_value = string(Core.eval(Main, var))
+    # @eval (var_value = $(var))
+    vars[var_name] = string("Unknown")
+  end
+  # collect frames
+  global stacks
+  stacks = []
+  for frame in stacktrace()
+    push!(stacks, string(frame))
+  end
+  println("Collect following info: ")
+  println(vars)
+  println(stacks)
 end
 
 
@@ -85,21 +112,26 @@ function stepOver()
   if ast_index == lastindex(asts)
     return false
   end
-
-  while true
-    try
-      updateLine()
-      ast_index = getAstIndex()
-      Core.eval(Main, asts[ast_index])
-    catch err
-      # if we meet a breakpoint
-      # we just ignore it
-      println("Error in next")
+  # run next line code
+  try
+    println(ast_index)
+    Core.eval(Main, asts[ast_index])
+    updateLine()
+  catch err
+    # if we meet a breakpoint
+    # we just ignore it
+    if err isa BreakPointStop
+      Break()
+      return true
+    else
+      global errors
+      errors = string(err)
+      println(errors)
       return false
-      #continue
     end
-    break
   end
+  # collect information
+  Break()
   return true
 end
 
@@ -113,7 +145,13 @@ function continous()
       Core.eval(Main, ast)
       updateLine()
     catch err
-      println(err)
+      if err isa BreakPointStop
+        Break()
+      else
+        global errors
+        errors = string(err)
+        println(errors)
+      end
       return
     end
   end
@@ -131,8 +169,11 @@ function setBreakPoints(filePath, lineno)
   bp.lineno = lineno
 end
 
+# clear break points
 function clearBreakPoints()
-  throw(NotImplementedError("clearBreakPoints have not been implemented"))
+  global bp
+  bp.filepath = ""
+  bp.lineno = []
 end
 
 # update line for run/next/continous call
@@ -148,10 +189,9 @@ function updateLine()
       break
     end
   end
-  line += 1
-  print("current line:", line)
+  line += ofs
+  println("current line:", line)
   if checkBreakPoint(line)
-    println("hit BreankPoint")  #this line can be 
     throw(BreakPointStop())
   end
 end

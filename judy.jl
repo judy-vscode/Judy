@@ -19,8 +19,8 @@ while isopen(sock)
   if method == "continue"
     EventHandler.continous()
 
-  elseif method == "step"
-    EventHandler.step()
+  elseif method == "stepOver"
+    EventHandler.stepOver()
 
   elseif method == "setBreakPoints"
     filePath = params["path"]
@@ -35,11 +35,13 @@ while isopen(sock)
     print(client, event)
 
   elseif method == "launch"
+    event = ""
     if !haskey(params, "stopOnEntry")
       EventHandler.run()
-    end
-    event = MsgHandler.eventCreate(Dict("method" => "stopOnEntry",
+    else
+      event = MsgHandler.eventCreate(Dict("method" => "stopOnEntry",
                              "thread" => 1))
+    end
     print(client, event)
 
   elseif method == "clearBreakPoints"

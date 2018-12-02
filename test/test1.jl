@@ -1,5 +1,10 @@
 a = 3
 b = 4
 
-c = a + b
+function f(x, y) 
+  return x + y
+end
+
+c = f(a, b)
 d = 5
+println(c)

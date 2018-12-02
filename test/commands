@@ -1,0 +1,16 @@
+00000065{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}
+
+00000088{"jsonrpc": "2.0", "id": 1, "method": "launch", "params": {"stopOnEntry":"stopOnEntry"}}
+
+00000099{"jsonrpc": "2.0", "id": 1, "method": "setBreakPoints", "params": {"path":"whatever", "lines":[4]}}
+
+00000061{"jsonrpc": "2.0", "id": 1, "method": "launch", "params": {}}
+
+00000063{"jsonrpc": "2.0", "id": 1, "method": "continue", "params": {}}
+
+00000063{"jsonrpc": "2.0", "id": 1, "method": "stepOver", "params": {}}
+
+
+nc -l 127.0.0.1 18001
+nc 127.0.0.1 8000
+julia judy.jl ./test/breakpoint.jl

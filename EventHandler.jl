@@ -3,19 +3,19 @@ module EventHandler
 asts = []
 blocks = []
 line = 0
-struct BreakPoints
+mutable struct BreakPoints
   filepath::AbstractString
   lineno::Array{Int64,1}
 end
 
-bp::BreakPoints
+bp = BreakPoints("",[])
 struct NotImplementedError <: Exception end
 struct BreakPointStop <: Exception end
 
 function readSourceToAST(file)
   global asts
   global blocks
-  line = 0
+  line = 1
   s = ""
   # recording blocks such as a function
   block_start = 0
@@ -54,15 +54,17 @@ function run()
   global line
   global blocks
   global bp
+  line = 1
   for ast in asts
     try
-      updateLine()
       Core.eval(Main, ast)
+      updateLine()
     catch err
       # if we run to a breakpoint
       # we will catch an exception and collect info
       if err isa BreakPointStop
         Break()
+      end
       return
     end
   end
@@ -72,6 +74,7 @@ end
 
 function Break()
   #collected info and return
+  
 end
 
 
@@ -100,14 +103,15 @@ function stepOver()
   return true
 end
 
-function continous(status)
+function continous()
   global asts
   global line
   ast_index = getAstIndex()
-  for ast in asts[ast_index + 1 : end]
+
+  for ast in asts[ast_index: end]
     try
-      updateLine()
       Core.eval(Main, ast)
+      updateLine()
     catch err
       println(err)
       return
@@ -144,9 +148,12 @@ function updateLine()
       break
     end
   end
-  line += ofs
+  line += 1
+  print("current line:", line)
   if checkBreakPoint(line)
+    println("hit BreankPoint")  #this line can be 
     throw(BreakPointStop())
+  end
 end
 
 function checkBreakPoint(line)
@@ -155,6 +162,7 @@ function checkBreakPoint(line)
     return true
   else
     return false
+  end
 end
 
 # get AstIndex from current line number

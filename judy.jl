@@ -9,14 +9,13 @@ sock = accept(server)
 client = connect(18001)
 
 while isopen(sock)
-
   # get events
   msg = MsgHandler.msgRecv(sock)
-  
   result = ""
 
   # handle events
   id, method, params = MsgHandler.msgParse(msg)
+  println(method)
   if method == "continue"
     EventHandler.continous()
 
@@ -24,9 +23,11 @@ while isopen(sock)
     EventHandler.step()
 
   elseif method == "setBreakPoints"
-    filePath = param["path"]
-    lineno = param["lines"]
+    filePath = params["path"]
+    lineno = params["lines"]
     EventHandler.setBreakPoints(filePath, lineno)
+    event = MsgHandler.eventCreate(Dict("method" => "stopOnBreakpoint",
+                              "thread" => 1))
 
   elseif method == "initialize"
     EventHandler.readSourceToAST(ARGS[1])
@@ -50,7 +51,7 @@ while isopen(sock)
   end
 
   # prepare respond
-  response = MsgHandler.msgCreate(id, result)
+  response = MsgHandler.msgCreate(id, result)     
 
   # send events
   write(sock, response)

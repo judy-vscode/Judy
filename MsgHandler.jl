@@ -45,9 +45,10 @@ function msgParse(msg)
 
 end
 
-function msgCreate(id, result)
+function msgCreate(id, method, result)
   json_obj = Dict("jsonrpc" => "2.0",
                   "id" => id,
+                  "method" => method,
                   "result" => result)
   # to string
   msg = JSON.json(json_obj)

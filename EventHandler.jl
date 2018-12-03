@@ -89,9 +89,8 @@ function Break()
   vars = Dict()
   for var in names(Main)[5:end]
     var_name = string(var)
-    #var_value = string(Core.eval(Main, var))
-    # @eval (var_value = $(var))
-    vars[var_name] = string("Unknown")
+    var_value = Core.eval(Main, var)
+    vars[var_name] = string(var_value)
   end
   # collect frames
   global stacks
@@ -99,6 +98,7 @@ function Break()
   for frame in stacktrace()
     push!(stacks, string(frame))
   end
+  stacks = stacks[2:end]
   println("Collect following info: ")
   println(vars)
   println(stacks)
@@ -140,6 +140,8 @@ function continous()
   global line
   ast_index = getAstIndex()
 
+  res = Dict("allThreadsContinued" => true)
+
   for ast in asts[ast_index: end]
     try
       Core.eval(Main, ast)
@@ -152,11 +154,11 @@ function continous()
         errors = string(err)
         println(errors)
       end
-      return
+      return res
     end
   end
   # exit normally
-  return
+  return res
 end
 
 function stepIn()
@@ -167,6 +169,17 @@ function setBreakPoints(filePath, lineno)
   global bp
   bp.filepath = filePath
   bp.lineno = lineno
+
+  # results for adding breakpoints
+  res = []
+  id = 1
+  for bpline in lineno:
+    push!(res, Dict("verified" => true,
+                    "line" => bpline,
+                    "id" => id))
+    id += 1
+  end
+  return res
 end
 
 # clear break points

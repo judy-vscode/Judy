@@ -45,10 +45,9 @@ function msgParse(msg)
 
 end
 
-function msgCreate(id, method, result)
+function msgCreate(id, result)
   json_obj = Dict("jsonrpc" => "2.0",
                   "id" => id,
-                  "method" => method,
                   "result" => result)
   # to string
   msg = JSON.json(json_obj)
@@ -58,11 +57,11 @@ function msgCreate(id, method, result)
 end
 
 # create event to notify adapter
-function eventCreate(params)
+function eventCreate(method, params)
   global event_id
   event_id += 1
   json_obj = Dict("jsonrpc" => "2.0",
-                  "id" => event_id,
+                  "method" => method,
                   "params" => params)
   msg = JSON.json(json_obj)
   len = "$(length(msg))"

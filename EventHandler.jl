@@ -109,7 +109,7 @@ function stepOver()
   global asts
   global line
   ast_index = getAstIndex()
-  if ast_index == lastindex(asts)
+  if ast_index == lastindex(asts) + 1
     return false
   end
   # run next line code
@@ -173,7 +173,7 @@ function setBreakPoints(filePath, lineno)
   # results for adding breakpoints
   res = []
   id = 1
-  for bpline in lineno:
+  for bpline in lineno
     push!(res, Dict("verified" => true,
                     "line" => bpline,
                     "id" => id))
@@ -188,6 +188,61 @@ function clearBreakPoints()
   bp.filepath = ""
   bp.lineno = []
 end
+
+# get stack trace for the current collection
+function getStackTrace()
+  global stacks
+  global bp
+  global line
+  frame_id = 1
+  result = []
+  for frame in stacks
+    push!(result, Dict("frameId" => 1,
+                       "path" => bp.filepath,
+                       "line" => line))
+  end
+  return result
+end
+
+
+function getScopes(frame_id)
+  return Dict("name" => "main",
+              "variablesReference" => frame_id)
+end
+
+
+function getVariables(ref)
+  global vars
+  result = []
+  for var in vars
+    push!(result, Dict("name" => var[1],
+                       "value" => var[2],
+                       "type" => "notSupportNow",
+                       "variablesReference" => 0))
+  end
+  return result
+end
+
+function getStatus(reason)
+  global line
+  global asts
+  if getAstIndex() == lastindex(asts) + 1
+    reason == "exited"
+    return Dict("exitCode" => 0), "exited"
+  end
+
+  description = ""
+  if reason == "step"
+    description = "step over (ignore breakpoints)"
+  elseif reason == "breakpoint"
+    description = "hit breakpoint: " * "$(line)"
+  end
+  result = Dict("reason" => reason,
+                "description" => description,
+                "text" => " ")
+  return result, "stopped"
+end
+
 
 # update line for run/next/continous call
 function updateLine()

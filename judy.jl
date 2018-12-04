@@ -13,39 +13,54 @@ while isopen(sock)
   msg = MsgHandler.msgRecv(sock)
   result = Dict()
   event = ""
+  event_method = ""
 
   # handle events
   id, method, params = MsgHandler.msgParse(msg)
   println(method)
-  if method == "continue"
-    result = EventHandler.continous()
 
-  elseif method == "next"
-    EventHandler.stepOver()
+  if method == "initialize"
+    EventHandler.readSourceToAST(ARGS[1])
+    event = Dict()
+    event_method = method
+
+  elseif method == "launch"
+    if !haskey(params, "stopOnEntry")
+      EventHandler.run()
+      event, event_method = EventHandler.getStatus("breakpoint")
+    else
+      event_method = "stopped"
+      event = Dict("reason" => "entry",
+                   "description" => "stop on entry",
+                   "text" => " ")
+    end
 
   elseif method == "setBreakPoints"
     filePath = params["path"]
     lineno = params["lines"]
     result = EventHandler.setBreakPoints(filePath, lineno)
-    event = MsgHandler.eventCreate(Dict("method" => "stopOnBreakpoint",
-                              "thread" => 1))
 
-  elseif method == "initialize"
-    EventHandler.readSourceToAST(ARGS[1])
-    event = MsgHandler.eventCreate(Dict("method" => "initialize"))
-    print(client, event)
+  elseif method == "configurationDone"
+    result = Dict()
 
-  elseif method == "launch"
-    if !haskey(params, "stopOnEntry")
-      EventHandler.run()
-    else
-      event = MsgHandler.eventCreate(Dict("method" => "stopOnEntry",
-                             "thread" => 1))
-    end
-    print(client, event)
+  elseif method == "continue"
+    result = EventHandler.continous()
+    event, event_method = EventHandler.getStatus("breakpoint")
 
-  elseif method == "clearBreakPoints"
-    EventHandler.clearBreakPoints()
+  elseif method == "next"
+    EventHandler.stepOver()
+    event, event_method = EventHandler.getStatus("step")
+
+  elseif method == "stackTrace"
+    result = EventHandler.getStackTrace()
+
+  elseif method == "scopes"
+    frame_id = params["frameId"]
+    result = EventHandler.getScopes(frame_id)
+
+  elseif method == "variables"
+    var_ref = params["variablesReference"]
+    result = EventHandler.getVariables(var_ref)
 
   else
     # throw(MsgHandler.UnKnownMethod("$(method) can't be called"))
@@ -55,6 +70,13 @@ while isopen(sock)
   # prepare respond
   response = MsgHandler.msgCreate(id, result)
 
-  # send events
-  write(sock, response)
+  # send response
+  print(client, response)
+
+  # prepare and send events (if have)
+  if event isa Dict
+    event = MsgHandler.eventCreate(event_method, event)
+    print(client, event)
+  end
+
 end

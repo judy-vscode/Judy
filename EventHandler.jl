@@ -197,9 +197,11 @@ function getStackTrace()
   frame_id = 1
   result = []
   for frame in stacks
-    push!(result, Dict("frameId" => 1,
+    push!(result, Dict("frameId" => frame_id,
                        "path" => bp.filepath,
-                       "line" => line))
+                       "line" => line),
+                       "name" => "frame" * "$(frame_id)")
+    frame_id += 1
   end
   return result
 end

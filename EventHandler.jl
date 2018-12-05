@@ -10,6 +10,14 @@ mutable struct BreakPoints
   lineno::Array{Int64,1}
 end
 
+mutable struct StackInfo
+  funcName::AbstractString
+  filepath::AbstractString
+  lineno::Int64
+  isInlined::Bool
+end
+
+
 # variable logger: vars["var_name"] = ("var_value", "var_type")
 vars = Dict()
 stacks = []
@@ -95,13 +103,18 @@ function Break()
   # collect frames
   global stacks
   stacks = []
-  for frame in stacktrace()
-    push!(stacks, string(frame))
-  end
-  stacks = stacks[2:end]
-  println("Collect following info: ")
-  println(vars)
-  println(stacks)
+  for frame in stackframe()
+    infoList = split(frame,' ')
+    if length(infoList) > 3
+      funcName, _, filepath = infoList[1:3]
+      filepath, lineno = split(filepath,":")
+      stackInfo = StackInfo(funcName, filepath, lineno, false)
+    else
+      funcName, _, filepath, isInlined = infoList[1:4]
+      filepath, lineno = split(filepath,":")
+      stackInfo = StackInfo(funcName, filepath, lineno, true)
+      push!(stacks, stackInfo)
+    end
 end
 
 
@@ -196,10 +209,13 @@ function getStackTrace()
   global line
   frame_id = 1
   result = []
-  for frame in stacks
-    push!(result, Dict("frameId" => 1,
-                       "path" => bp.filepath,
-                       "line" => line))
+  cnt = 0
+  for stackInfo in stacks
+    cnt += 1
+    push!(result, Dict("frameId" => cnt,
+                       "name" => stackInfo.funcName,
+                       "path" => stackInfo.filepath,
+                       "line" => stackInfo.lineno))
   end
   return result
 end

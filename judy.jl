@@ -22,7 +22,7 @@ while isopen(sock)
   if method == "initialize"
     EventHandler.readSourceToAST(ARGS[1])
     event = Dict()
-    event_method = method
+    event_method = "initialized"
 
   elseif method == "launch"
     if !haskey(params, "stopOnEntry")

@@ -1,8 +1,12 @@
 a = 3
 b = 4
 
-function f(x, y) 
+function f(x, y)
+  a = 3
+  
   return x + y
+
+
 end
 
 c = f(a, b)

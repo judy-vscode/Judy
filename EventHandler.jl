@@ -14,7 +14,13 @@ mutable struct StackInfo
   funcName::AbstractString
   filepath::AbstractString
   lineno::Int64
-  isInlined::Bool
+end
+
+mutable struct BlockInfo
+  BlockType::Symbol
+  startline::Int64
+  endline::Int64
+  raw_code::AbstractString
 end
 
 
@@ -50,7 +56,8 @@ function readSourceToAST(file)
         if block_start != 0
           # add block line postion
           block_end = line
-          push!(blocks, (block_start, block_end))
+          blockinfo = BlockInfo(ex.head,block_start, block_end,s)
+          push!(blocks, blockinfo)
           block_start = 0
         end
         ast = Meta.lower(Main, ex)
@@ -89,7 +96,7 @@ function run()
 end
 
 # update info from this point
-function Break()
+function Break()    #--------need to be modified
   global line
   println("hit BreakPoint: ", line)
   # collect variable information -- only global variable
@@ -103,18 +110,23 @@ function Break()
   # collect frames
   global stacks
   stacks = []
-  for frame in stackframe()
-    infoList = split(frame,' ')
-    if length(infoList) > 3
-      funcName, _, filepath = infoList[1:3]
-      filepath, lineno = split(filepath,":")
-      stackInfo = StackInfo(funcName, filepath, lineno, false)
-    else
-      funcName, _, filepath, isInlined = infoList[1:4]
-      filepath, lineno = split(filepath,":")
-      stackInfo = StackInfo(funcName, filepath, lineno, true)
-      push!(stacks, stackInfo)
-    end
+  for frame in stacktrace()
+    # infoList = split(String(frame)," ")
+    # if length(infoList) > 3
+    #   funcName, _, filepath = infoList[1:3]
+    #   filepath, lineno = split(filepath,":")
+    #   stackInfo = StackInfo(funcName, filepath, lineno, false)
+    # else
+    #   funcName, _, filepath, isInlined = infoList[1:4]
+    #   filepath, lineno = split(filepath,":")
+    #   stackInfo = StackInfo(funcName, filepath, lineno, true)
+    funcName = String(frame.func)
+    filepath = String(frame.file)
+    lineno = frame.line
+    stackInfo = StackInfo(funcName, filepath, lineno)
+    push!(stacks, stackInfo)
+    # end
+  end
 end
 
 
@@ -180,6 +192,7 @@ end
 
 function setBreakPoints(filePath, lineno)
   global bp
+  global blocks
   bp.filepath = filePath
   bp.lineno = lineno
 
@@ -187,15 +200,58 @@ function setBreakPoints(filePath, lineno)
   res = []
   id = 1
   for bpline in lineno
-    push!(res, Dict("verified" => true,
-                    "line" => bpline,
-                    "id" => id))
-    id += 1
+
+    #check if exists bp in block
+    #The key to insert the point is when we revise a copy of function's ast,
+    #and then eval the ast, we update the definition of the function
+    #Another thing is we should make the mapping from original code pos to insert offset
+    #considering blank line
+    for blockinfo in blocks
+      if blockinfo.startline <= bpline <= blockinfo.endline
+        ast = parseInputLine(blockinfo.raw_code)
+        codelines = split(blockinfo.raw_code,"\n")
+        # for codeline in codelines:
+        #   if isempty(strip(codeline))
+        nonBlankLine = 0
+        firstNonBlankLine = 0
+        for i in range(1, stop = blockinfo.endline - blockinfo.startline + 1)
+          if isempty(strip(codelines[i]))
+            continue
+          end
+          if i >= bpline - blockinfo.startline + 1
+            firstNonBlankLine = i
+            break
+          end
+          nonBlankLine += 1  #nonBlankLine before bp line
+        end
+        if nonBlankLine == 0
+          ofs = 1
+        elseif bpline == blockinfo.endline
+          push!(ast.args[2].args,Expr(:call,Break))
+        else
+          ofs = 2 * nonBlankLine - 1
+        end
+        # println("ofs",ofs)
+        ast.args[2].args[ofs] = Expr(:call, Break)
+        eval(ast)  #update function definition
+        println(ast)
+        push!(res, Dict("verified" => true,
+                        "line" => firstNonBlankLine + blockinfo.startline - 1,  #verify first non-blank line
+                        "id" => id))
+        id += 1
+      else
+        push!(res, Dict("verified" => true,
+                        "line" => bpline,  #--------------need to be modified
+                        "id" => id))
+        id += 1        
+      end
+    end    
   end
+
   return res
 end
 
-# clear break points
+# clear break points---------need to be modified
 function clearBreakPoints()
   global bp
   bp.filepath = ""
@@ -265,11 +321,11 @@ function updateLine()
   global blocks
   global line
   ofs = 1
-  for range in blocks
-    if line == range[1]
-      ofs = range[2] - range[1] + 1
+  for blockinfo in blocks
+    if line == blockinfo.startline
+      ofs = blockinfo.endline - blockinfo.startline + 1
       break
-    elseif range[1] > line
+    elseif blockinfo.startline > line
       break
     end
   end
@@ -297,13 +353,13 @@ function getAstIndex()
   base = line
   ofs = 0
   for block in blocks
-    if block[1] <= line <= block[2]
-      base = block[1]
+    if block.startline <= line <= block.endline
+      base = block.startline
       break
-    elseif block[1] > line
+    elseif block.startline > line
       break
     end
-    ofs += block[2] - block[1]
+    ofs += block.endline - block.startline
   end
   return base - ofs
 end

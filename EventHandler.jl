@@ -111,15 +111,6 @@ function Break()    #--------need to be modified
   global stacks
   stacks = []
   for frame in stacktrace()
-    # infoList = split(String(frame)," ")
-    # if length(infoList) > 3
-    #   funcName, _, filepath = infoList[1:3]
-    #   filepath, lineno = split(filepath,":")
-    #   stackInfo = StackInfo(funcName, filepath, lineno, false)
-    # else
-    #   funcName, _, filepath, isInlined = infoList[1:4]
-    #   filepath, lineno = split(filepath,":")
-    #   stackInfo = StackInfo(funcName, filepath, lineno, true)
     funcName = String(frame.func)
     filepath = String(frame.file)
     lineno = frame.line
@@ -263,7 +254,6 @@ function getStackTrace()
   global stacks
   global bp
   global line
-  frame_id = 1
   result = []
   cnt = 0
   for stackInfo in stacks

@@ -3,6 +3,7 @@ module EventHandler
 asts = []
 blocks = []
 line = 1
+currentFile = ""
 
 # break points logger
 mutable struct BreakPoints
@@ -28,7 +29,9 @@ end
 vars = Dict()
 stacks = []
 errors = ""
-bp = BreakPoints("",[])
+
+bp_list = []
+# = BreakPoints("",[])
 
 struct NotImplementedError <: Exception end
 struct BreakPointStop <: Exception end
@@ -74,12 +77,11 @@ end
 function run()
   global asts
   global line
-  global bp
   line = 1
   for ast in asts
     try
-      Core.eval(Main, ast)
       updateLine()
+      Core.eval(Main, ast)
     catch err
       # if we run to a breakpoint
       # we will catch an exception and collect info
@@ -107,7 +109,6 @@ function Break()    #--------need to be modified
     var_value = Core.eval(Main, var)
     vars[var_name] = string(var_value)
   end
-  # collect frames
   global stacks
   stacks = []
   for frame in stacktrace()
@@ -124,15 +125,14 @@ end
 function stepOver()
   global asts
   global line
-  ast_index = getAstIndex()
+  ast_index = getAstIndex(line)
   if ast_index == lastindex(asts) + 1
     return false
   end
   # run next line code
   try
-    println(ast_index)
-    Core.eval(Main, asts[ast_index])
     updateLine()
+    Core.eval(Main, asts[ast_index])
   catch err
     # if we meet a breakpoint
     # we just ignore it
@@ -154,14 +154,15 @@ end
 function continous()
   global asts
   global line
-  ast_index = getAstIndex()
+  ast_index = getAstIndex(line)
 
   res = Dict("allThreadsContinued" => true)
 
   for ast in asts[ast_index: end]
+    print(ast)
     try
-      Core.eval(Main, ast)
       updateLine()
+      Core.eval(Main, ast)
     catch err
       if err isa BreakPointStop
         Break()
@@ -181,17 +182,42 @@ function stepIn()
   throw(NotImplementedError("step have not been implemented"))
 end
 
+
+
 function setBreakPoints(filePath, lineno)
-  global bp
+#check current bp
+#if bp added, insert BreakPoint
+#if canceled, delete Breanpoint
+
+
+  global bp_list
   global blocks
-  bp.filepath = filePath
-  bp.lineno = lineno
+  global line
 
   # results for adding breakpoints
   res = []
   id = 1
-  for bpline in lineno
 
+  flag = false
+  for e in bp_list
+    if e.filepath == filePath
+      pre_bp_list = e.lineno
+      flag = true
+    end
+  end
+
+  if !flag
+    pre_bp_list = []
+  
+  common = intersect(Set(pre_bp_list), Set(lineno))
+  increment = collect(setdiff(Set(lineno), common))
+  decrement = collect(setdiff(Set(pre_bp_list), common))
+
+  for e in increment
+
+
+  for i in range(length(lineno))
+    bpline = lineno[i]
     #check if exists bp in block
     #The key to insert the point is when we revise a copy of function's ast,
     #and then eval the ast, we update the definition of the function
@@ -215,39 +241,71 @@ function setBreakPoints(filePath, lineno)
           end
           nonBlankLine += 1  #nonBlankLine before bp line
         end
+        push!(ast.args[2].args, Nothing)
         if nonBlankLine == 0
           ofs = 1
         elseif bpline == blockinfo.endline
-          push!(ast.args[2].args,Expr(:call,Break))
+          firstNonBlankLine = blockinfo.endline - blockinfo.startline + 1
+          ofs = length(ast.args[2].args)
         else
           ofs = 2 * nonBlankLine - 1
         end
         # println("ofs",ofs)
         ast.args[2].args[ofs] = Expr(:call, Break)
         eval(ast)  #update function definition
-        println(ast)
+        print(ast)
         push!(res, Dict("verified" => true,
                         "line" => firstNonBlankLine + blockinfo.startline - 1,  #verify first non-blank line
                         "id" => id))
+        lineno[i] = firstNonBlankLine + blockinfo.startline - 1
         id += 1
+      #not in a block
       else
+        firstNonBlankLine = bpline
+        while true
+          ast_index = getAstIndex(firstNonBlankLine)
+          if ast_index > length(asts)
+            firstNonBlankLine = bpline
+            break
+          end
+          if isa(asts[ast_index], Nothing)
+            firstNonBlankLine += 1
+          else
+            break
+          end
+        end
         push!(res, Dict("verified" => true,
-                        "line" => bpline,  #--------------need to be modified
+                        "line" => firstNonBlankLine, 
                         "id" => id))
         id += 1        
+        lineno[i] = firstNonBlankLine
       end
     end    
+  end
+
+  flag = false
+  bp = BreakPoints("",[])
+  for e in bp_list
+    if e.filepath == filePath
+      flag = true
+      bp = e
+    end
+  end
+
+  if !flag
+    bp = BreakPoints("",[])
+    bp.filepath = filePath
+    bp.lineno = lineno
+    push!(bp_list,bp)
   end
 
   return res
 end
 
-# clear break points---------need to be modified
-function clearBreakPoints()
-  global bp
-  bp.filepath = ""
-  bp.lineno = []
-end
+function idtRealPos(lineno)
+
+
+
 
 # get stack trace for the current collection
 function getStackTrace()
@@ -327,7 +385,7 @@ function updateLine()
 end
 
 function checkBreakPoint(line)
-  global bp
+  global bp_list
   if line in bp.lineno
     return true
   else
@@ -336,17 +394,16 @@ function checkBreakPoint(line)
 end
 
 # get AstIndex from current line number
-function getAstIndex()
+function getAstIndex(lineno)
   global blocks
-  global line
   global asts
-  base = line
+  base = lineno
   ofs = 0
   for block in blocks
-    if block.startline <= line <= block.endline
+    if block.startline <= lineno <= block.endline
       base = block.startline
       break
-    elseif block.startline > line
+    elseif block.startline > lineno
       break
     end
     ofs += block.endline - block.startline

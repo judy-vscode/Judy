@@ -258,17 +258,10 @@ function getStackTrace()
   cnt = 0
   for stackInfo in stacks
     cnt += 1
-    # Temporary way for solving single file debugger.
-    # Need a better mechanism when we implement
-    # multi source files debugger [use array to include multi files]
-    debugger_file = r"(EventHandler\.jl)|(judy\.jl)|(MsgHandler\.jl)"
-    m = match(debugger_file, stackInfo.filepath)
-    if !isa(m, RegexMatch)
-      push!(result, Dict("frameId" => cnt,
-                         "name" => stackInfo.funcName,
-                         "path" => stackInfo.filepath,
-                         "line" => stackInfo.lineno))
-    end
+    push!(result, Dict("frameId" => cnt,
+                       "name" => stackInfo.funcName,
+                       "path" => stackInfo.filepath,
+                       "line" => stackInfo.lineno))
   end
   return result
 end

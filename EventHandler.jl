@@ -3,14 +3,17 @@ module EventHandler
 include("DebugInfo.jl")
 
 asts = []
-blocks = []
 line = 1
 currentFile = ""
 
-# break points logger
 mutable struct BreakPoints
   filepath::AbstractString
   lineno::Array{Int64,1}
+end
+
+mutable struct AstInfo
+  asts::Array
+  blocks::Array # save struct BlockInfo
 end
 
 mutable struct BlockInfo
@@ -20,10 +23,14 @@ mutable struct BlockInfo
   raw_code::AbstractString
 end
 
-errors = ""
+# FileLine["FileName"] = line number
+FileLine = Dict()
+# FileAst["filename"] = struct AstInfo
+FileAst = Dict()
+# FileBp["filename"] = [bp line array]
+FileBp = Dict()
 
-bp_list = []
-# = BreakPoints("",[])
+errors = ""
 
 struct NotImplementedError <: Exception end
 struct BreakPointStop <: Exception end

@@ -2,10 +2,6 @@ module EventHandler
 
 include("DebugInfo.jl")
 
-asts = []
-line = 1
-currentFile = ""
-
 mutable struct BreakPoints
   filepath::AbstractString
   lineno::Array{Int64,1}

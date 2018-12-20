@@ -107,7 +107,7 @@ function Break()    #--------need to be modified
   for var in names(Main)[5:end]
     var_name = string(var)
     var_value = Core.eval(Main, var)
-    vars[var_name] = string(var_value)
+    vars[var_name] = [string(var_value), string(typeof(a))]
   end
   global stacks
   stacks = []
@@ -342,9 +342,10 @@ function getVariables(ref)
   global vars
   result = []
   for var in vars
+    property = var[2]
     push!(result, Dict("name" => var[1],
-                       "value" => var[2],
-                       "type" => "notSupportNow",
+                       "value" => property[1],
+                       "type" => property[2],
                        "variablesReference" => 0))
   end
   return result

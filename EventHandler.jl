@@ -1,20 +1,15 @@
 module EventHandler
 
-asts = []
-blocks = []
-line = 1
-currentFile = ""
+include("DebugInfo.jl")
 
-# break points logger
 mutable struct BreakPoints
   filepath::AbstractString
   lineno::Array{Int64,1}
 end
 
-mutable struct StackInfo
-  funcName::AbstractString
-  filepath::AbstractString
-  lineno::Int64
+mutable struct AstInfo
+  asts::Array
+  blocks::Array # save struct BlockInfo
 end
 
 mutable struct BlockInfo
@@ -24,14 +19,14 @@ mutable struct BlockInfo
   raw_code::AbstractString
 end
 
+# FileLine["FileName"] = line number
+FileLine = Dict()
+# FileAst["filename"] = struct AstInfo
+FileAst = Dict()
+# FileBp["filename"] = [bp line array]
+FileBp = Dict()
 
-# variable logger: vars["var_name"] = ("var_value", "var_type")
-vars = Dict()
-stacks = []
 errors = ""
-
-bp_list = []
-# = BreakPoints("",[])
 
 struct NotImplementedError <: Exception end
 struct BreakPointStop <: Exception end
@@ -98,27 +93,13 @@ function run()
 end
 
 # update info from this point
-function Break()    #--------need to be modified
+function Break()
   global line
   println("hit BreakPoint: ", line)
-  # collect variable information -- only global variable
-  global vars
-  vars = Dict()
-  for var in names(Main)[5:end]
-    var_name = string(var)
-    var_value = Core.eval(Main, var)
-    vars[var_name] = string(var_value)
-  end
-  global stacks
-  stacks = []
-  for frame in stacktrace()
-    funcName = String(frame.func)
-    filepath = String(frame.file)
-    lineno = frame.line
-    stackInfo = StackInfo(funcName, filepath, lineno)
-    push!(stacks, stackInfo)
-    # end
-  end
+  # collect variable info
+  DebugInfo.collectVarInfo()
+  # collect stack info
+  DebugInfo.collectStackInfo()
 end
 
 
@@ -309,26 +290,7 @@ function idtRealPos(lineno)
 
 # get stack trace for the current collection
 function getStackTrace()
-  global stacks
-  global bp
-  global line
-  result = []
-  cnt = 0
-  for stackInfo in stacks
-    cnt += 1
-    # Temporary way for solving single file debugger.
-    # Need a better mechanism when we implement
-    # multi source files debugger [use array to include multi files]
-    debugger_file = r"(EventHandler\.jl)|(judy\.jl)|(MsgHandler\.jl)"
-    m = match(debugger_file, stackInfo.filepath)
-    if !isa(m, RegexMatch)
-      push!(result, Dict("frameId" => cnt,
-                         "name" => stackInfo.funcName,
-                         "path" => stackInfo.filepath,
-                         "line" => stackInfo.lineno))
-    end
-  end
-  return result
+  return DebugInfo.getStackInfo()
 end
 
 
@@ -339,15 +301,7 @@ end
 
 
 function getVariables(ref)
-  global vars
-  result = []
-  for var in vars
-    push!(result, Dict("name" => var[1],
-                       "value" => var[2],
-                       "type" => "notSupportNow",
-                       "variablesReference" => 0))
-  end
-  return result
+  return DebugInfo.getVarInfo()
 end
 
 function getStatus(reason)

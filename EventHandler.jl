@@ -26,6 +26,7 @@ FileAst = Dict()
 # FileBp["filename"] = [bp line array]
 FileBp = Dict()
 
+currentFile = ""
 errors = ""
 
 struct NotImplementedError <: Exception end
@@ -70,9 +71,8 @@ end
 # run whole program
 # return a status contains ast, current_line
 function run()
-  global asts
-  global line
-  line = 1
+  asts = FileAst[currentFile]
+  # line = FileLine[currentFile]
   for ast in asts
     try
       updateLine()
@@ -133,8 +133,8 @@ function stepOver()
 end
 
 function continous()
-  global asts
-  global line
+  asts = FileAst[currentFile]
+  line = FileLine[currentFile]
   ast_index = getAstIndex(line)
 
   res = Dict("allThreadsContinued" => true)
@@ -163,6 +163,62 @@ function stepIn()
   throw(NotImplementedError("step have not been implemented"))
 end
 
+function getRealPos(filePath, bpline)
+  asts = FileAst[filePath]
+    #check if exists bp in block
+    #The key to insert the point is when we revise a copy of function's ast,
+    #and then eval the ast, we update the definition of the function
+    #Another thing is we should make the mapping from original code pos to insert offset
+    #considering blank line  
+  global blocks
+  for blockinfo in blocks
+    if blockinfo.startline <= bpline <= blockinfo.endline
+      ast = parseInputLine(blockinfo.raw_code)
+      codelines = split(blockinfo.raw_code,"\n")
+      # for codeline in codelines:
+      #   if isempty(strip(codeline))
+      nonBlankLine = 0
+      firstNonBlankLine = 0
+      for i in range(1, stop = blockinfo.endline - blockinfo.startline + 1)
+        if isempty(strip(codelines[i]))
+          continue
+        end
+        if i >= bpline - blockinfo.startline + 1
+          firstNonBlankLine = i
+          break
+        end
+        nonBlankLine += 1  #nonBlankLine before bp line
+      end
+      push!(ast.args[2].args, Nothing)
+      if nonBlankLine == 0
+        ofs = 1
+      elseif bpline == blockinfo.endline
+        firstNonBlankLine = blockinfo.endline - blockinfo.startline + 1
+        ofs = length(ast.args[2].args)
+      else
+        ofs = 2 * nonBlankLine - 1
+      end
+      realLineno = firstNonBlankLine + blockinfo.startline - 1
+      return ast, ofs, realLineno
+    #not in a block
+    end
+  end
+
+  firstNonBlankLine = bpline
+  while true
+    ast_index = getAstIndex(firstNonBlankLine)
+    if ast_index > length(asts)
+      firstNonBlankLine = bpline
+      break
+    end
+    if isa(asts[ast_index], Nothing)
+      firstNonBlankLine += 1
+    else
+      break
+    end
+  end
+  return Nothing, Nothing, firstNonBlankLine
+end   
 
 
 function setBreakPoints(filePath, lineno)
@@ -174,119 +230,63 @@ function setBreakPoints(filePath, lineno)
   global bp_list
   global blocks
   global line
-
-  # results for adding breakpoints
   res = []
-  id = 1
-
-  flag = false
-  for e in bp_list
-    if e.filepath == filePath
-      pre_bp_list = e.lineno
-      flag = true
-    end
-  end
-
-  if !flag
-    pre_bp_list = []
+  # results for adding breakpoints
   
-  common = intersect(Set(pre_bp_list), Set(lineno))
-  increment = collect(setdiff(Set(lineno), common))
-  decrement = collect(setdiff(Set(pre_bp_list), common))
-
-  for e in increment
-
-
-  for i in range(length(lineno))
-    bpline = lineno[i]
-    #check if exists bp in block
-    #The key to insert the point is when we revise a copy of function's ast,
-    #and then eval the ast, we update the definition of the function
-    #Another thing is we should make the mapping from original code pos to insert offset
-    #considering blank line
-    for blockinfo in blocks
-      if blockinfo.startline <= bpline <= blockinfo.endline
-        ast = parseInputLine(blockinfo.raw_code)
-        codelines = split(blockinfo.raw_code,"\n")
-        # for codeline in codelines:
-        #   if isempty(strip(codeline))
-        nonBlankLine = 0
-        firstNonBlankLine = 0
-        for i in range(1, stop = blockinfo.endline - blockinfo.startline + 1)
-          if isempty(strip(codelines[i]))
-            continue
-          end
-          if i >= bpline - blockinfo.startline + 1
-            firstNonBlankLine = i
-            break
-          end
-          nonBlankLine += 1  #nonBlankLine before bp line
-        end
-        push!(ast.args[2].args, Nothing)
-        if nonBlankLine == 0
-          ofs = 1
-        elseif bpline == blockinfo.endline
-          firstNonBlankLine = blockinfo.endline - blockinfo.startline + 1
-          ofs = length(ast.args[2].args)
-        else
-          ofs = 2 * nonBlankLine - 1
-        end
-        # println("ofs",ofs)
-        ast.args[2].args[ofs] = Expr(:call, Break)
-        eval(ast)  #update function definition
-        print(ast)
-        push!(res, Dict("verified" => true,
-                        "line" => firstNonBlankLine + blockinfo.startline - 1,  #verify first non-blank line
-                        "id" => id))
-        lineno[i] = firstNonBlankLine + blockinfo.startline - 1
-        id += 1
-      #not in a block
-      else
-        firstNonBlankLine = bpline
-        while true
-          ast_index = getAstIndex(firstNonBlankLine)
-          if ast_index > length(asts)
-            firstNonBlankLine = bpline
-            break
-          end
-          if isa(asts[ast_index], Nothing)
-            firstNonBlankLine += 1
-          else
-            break
-          end
-        end
-        push!(res, Dict("verified" => true,
-                        "line" => firstNonBlankLine, 
-                        "id" => id))
-        id += 1        
-        lineno[i] = firstNonBlankLine
-      end
-    end    
-  end
-
   flag = false
-  bp = BreakPoints("",[])
+  bp = BreakPoint("",[])
   for e in bp_list
     if e.filepath == filePath
-      flag = true
       bp = e
+      pre_lineno = e.lineno
+      flag = true
     end
   end
 
   if !flag
-    bp = BreakPoints("",[])
-    bp.filepath = filePath
-    bp.lineno = lineno
-    push!(bp_list,bp)
-  end
+    pre_lineno = []
+    push!(bp_list, bp)
+  
+  common = intersect(Set(pre_lineno), Set(lineno))
+  increment = collect(setdiff(Set(lineno), common))
+  decrement = collect(setdiff(Set(pre_lineno), common))
 
+
+  id = 1
+  for bpline in collect(common)
+    push!(res, Dict("verified" => true,
+    "line" => bpline,  #verify first non-blank line
+    "id" => id))
+    id += 1
+  #add
+  for bpline in increment
+    ast, ofs, realLineno = getRealPos(filePath, bpline)
+    push!(res, Dict("verified" => true,
+    "line" => realLineno,  #verify first non-blank line
+    "id" => id))
+    id += 1
+    if !isa(ast, Nothing)
+      ast.args[2].args[ofs] = Expr(:call, Break)
+      eval(ast)
+    end
+    index = findfirst(isequal(bpline), increment)
+    print(index)
+    increment[i] = realLineno
+  end
+  #cancel
+  for bpline in decrement
+    ast, ofs, realLineno = getRealPos(filePath, bpline)
+    if !isa(ast, Nothing)
+      ast.args[2].args[ofs] = "#= none =#"
+      eval(ast)
+    end
+  end
+  new_lineno = collect(common.union(increment))
+  bp.lineno = new_lineno
+  bp.filepath = filePath
+  
   return res
 end
-
-function idtRealPos(lineno)
-
-
-
 
 # get stack trace for the current collection
 function getStackTrace()
@@ -305,8 +305,8 @@ function getVariables(ref)
 end
 
 function getStatus(reason)
-  global line
-  global asts
+  asts = FileAst[currentFile]
+  line = FileLine[currentFile]
   if getAstIndex() == lastindex(asts) + 1
     reason == "exited"
     return Dict("exitCode" => 0), "exited"

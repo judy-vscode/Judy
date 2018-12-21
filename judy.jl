@@ -24,11 +24,11 @@ function run()
     println(method)
 
     if method == "initialize"
-      EventHandler.readSourceToAST(ARGS[1])
       event = Dict()
       event_method = "initialized"
 
     elseif method == "launch"
+      EventHandler.init(params["program"])
       if !haskey(params, "stopOnEntry")
         EventHandler.run()
         event, event_method = EventHandler.getStatus("breakpoint")
@@ -48,11 +48,11 @@ function run()
       result = Dict()
 
     elseif method == "continue"
-      result = EventHandler.continous()
+      result = EventHandler.RunTime.continous()
       event, event_method = EventHandler.getStatus("breakpoint")
 
     elseif method == "next"
-      EventHandler.stepOver()
+      EventHandler.RunTime.stepOver()
       event, event_method = EventHandler.getStatus("step")
 
     elseif method == "stackTrace"

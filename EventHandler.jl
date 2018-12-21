@@ -92,12 +92,12 @@ end
 
 function getScopes(frame_id)
   return Dict("name" => "main",
-              "variablesReference" => frame_id)
+              "variablesReference" => 1000 + frame_id)
 end
 
 
 function getVariables(ref)
-  if(ref > 10000)
+  if ref >= 1000
     ref = 1
   end
   return RunTime.DebugInfo.getVarInfo(ref)

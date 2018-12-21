@@ -33,6 +33,13 @@ errors = ""
 struct NotImplementedError <: Exception end
 struct BreakPointStop <: Exception end
 
+# entry file for debugging
+function setEntryFile(file)
+  global RunFileStack
+  push!(RunFileStack, file)
+  readSourceToAST(file)
+end
+
 function readSourceToAST(file)
   global FileAst
   asts = []
@@ -68,6 +75,7 @@ function readSourceToAST(file)
     end
   end
   FileAst[file] = AstInfo(asts, blocks)
+  println("save $(file) ast to FileAst")
 end
 
 # run whole program
@@ -114,7 +122,7 @@ function stepOver()
   global RunFileStack
   current_file = RunFileStack[end]
   asts = FileAst[current_file].asts
-  ast_index = getAstIndex(FileLine[current_file])
+  ast_index = getAstIndex(current_file, FileLine[current_file])
   if ast_index == lastindex(asts) + 1
     return false
   end
@@ -146,7 +154,7 @@ function continous()
   global RunFileStack
   current_file = RunFileStack[end]
   asts = FileAst[current_file].asts
-  ast_index = getAstIndex(FileLine[current_file])
+  ast_index = getAstIndex(current_file, FileLine[current_file])
 
   res = Dict("allThreadsContinued" => true)
 
@@ -176,8 +184,14 @@ end
 
 function setBreakPoints(filepath, lineno)
   global FileBp
+  result = []
   readSourceToAST(filepath)
   FileBp[filepath] = lineno
+  for line in lineno
+    # here should verify bp correctness
+    push!(result, true)
+  end
+  return result
 end
 
 # update line for run/next/continous call
@@ -217,10 +231,9 @@ function checkBreakPoint()
 end
 
 # get AstIndex from current file and line number
-function getAstIndex(lineno)
+function getAstIndex(filepath, lineno)
   global FileAst
-  global RunFileStack
-  blocks = FileAst[RunFileStack[end]].blocks
+  blocks = FileAst[filepath].blocks
   base = lineno
   ofs = 0
   for block in blocks

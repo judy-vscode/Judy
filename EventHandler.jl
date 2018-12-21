@@ -2,7 +2,7 @@ module EventHandler
 
 include("RunTime.jl")
 
-
+#=
 function getRealPos(filepath, bpline)
   global FileAst
   global RunFileStack
@@ -61,7 +61,28 @@ function getRealPos(filepath, bpline)
   end
   return Nothing, Nothing, firstNonBlankLine
 end   
+=#
 
+function init(file)
+  RunTime.setEntryFile(file)
+end
+
+function setBreakPoints(filepath, lineno)
+  res = RunTime.setBreakPoints(filepath, lineno)
+  result = []
+  id = 1
+  for idx in collect(1:1:length(lineno))
+    if res[idx]
+      push!(result, Dict("verified" => true,
+                         "line" => lineno[idx],
+                         "id" => id))
+      id += 1
+    else
+      push!(result, Dict("verified" => false))
+    end
+  end
+  return result
+end
 
 # get stack trace for the current collection
 function getStackTrace()
@@ -80,9 +101,11 @@ function getVariables(ref)
 end
 
 function getStatus(reason)
-  asts = FileAst[currentFile].asts
-  line = FileLine[currentFile]
-  if RunTime.getAstIndex() == lastindex(asts) + 1
+  current_file = RunTime.RunFileStack[end]
+  asts = RunTime.FileAst[current_file].asts
+  line = RunTime.FileLine[current_file]
+
+  if RunTime.getAstIndex(current_file, line) == lastindex(asts) + 1
     reason == "exited"
     return Dict("exitCode" => 0), "exited"
   end
@@ -97,22 +120,6 @@ function getStatus(reason)
                 "description" => description,
                 "text" => " ")
   return result, "stopped"
-end
-
-  
-
-function parseInputLine(s::String; filename::String="none", depwarn=true)
-  # For now, assume all parser warnings are depwarns
-  ex = if depwarn
-      ccall(:jl_parse_input_line, Any, (Ptr{UInt8}, Csize_t, Ptr{UInt8}, Csize_t),
-            s, sizeof(s), filename, sizeof(filename))
-  else
-      with_logger(NullLogger()) do
-          ccall(:jl_parse_input_line, Any, (Ptr{UInt8}, Csize_t, Ptr{UInt8}, Csize_t),
-                s, sizeof(s), filename, sizeof(filename))
-      end
-  end
-  return ex
 end
 
 end # module EventHandler

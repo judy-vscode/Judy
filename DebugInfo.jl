@@ -69,13 +69,13 @@ function collectVarInfo()
   for var in names(Main)[5:end]
     var_name = string(var)
     var_value = string(Core.eval(Main, var))
-    var_type = string(typeof(a))
+    var_type = string(typeof(var))
     var_ref = 0
     ##if length(fieldnames(typeof(var))) != 0
     ##  var_ref = ref + 1
     ##end
     var_info = VarInfo(var_name, var_type, var_value, var_ref)
-    !push(module_var, var_info)
+    push!(module_var, var_info)
   end
   global_vars[Main] = module_var
 end

@@ -36,12 +36,14 @@ struct BreakPointStop <: Exception end
 # entry file for debugging
 function setEntryFile(file)
   global RunFileStack
+  global FileLine
   push!(RunFileStack, file)
   readSourceToAST(file)
 end
 
 function readSourceToAST(file)
   global FileAst
+  global FileLine
   asts = []
   blocks = []
   line = 0
@@ -75,7 +77,9 @@ function readSourceToAST(file)
     end
   end
   FileAst[file] = AstInfo(asts, blocks)
-  println("save $(file) ast to FileAst")
+  if !haskey(FileLine, file)
+    FileLine[file] = 1
+  end
 end
 
 # run whole program
@@ -84,6 +88,12 @@ function run()
   global FileLine
   global FileAst
   global RunFileStack
+  # reset all file line
+  for file in FileLine
+    FileLine[file[1]] = 1
+  end
+  RunFileStack = [RunFileStack[end]]
+  # start running program
   for ast in FileAst[RunFileStack[end]].asts
     try
       updateLine()
@@ -128,8 +138,8 @@ function stepOver()
   end
   # run next line code
   try
-    updateLine()
     Core.eval(Main, asts[ast_index])
+    updateLine()
   catch err
     # if we meet a breakpoint
     # we just ignore it
@@ -159,17 +169,17 @@ function continous()
   res = Dict("allThreadsContinued" => true)
 
   for ast in asts[ast_index: end]
-    print(ast)
     try
-      updateLine()
+      println("current line: $(FileLine[current_file]), ast idx: $(ast_index)")
       Core.eval(Main, ast)
+      updateLine()
     catch err
       if err isa BreakPointStop
         Break()
       else
         global errors
         errors = string(err)
-        println(errors)
+        println("runtime errors: $(errors)")
       end
       return res
     end
@@ -203,15 +213,14 @@ function updateLine()
   blocks = FileAst[current_file].blocks
   ofs = 1
   for blockinfo in blocks
-    if line == blockinfo.startline
-      ofs = blockinfo.endline - blockinfo.startline + 1
+    if FileLine[current_file] == blockinfo.startline
+      ofs += blockinfo.endline - blockinfo.startline + 1
       break
-    elseif blockinfo.startline > line
+    elseif blockinfo.startline > FileLine[current_file]
       break
     end
   end
   FileLine[current_file] += ofs
-  println("current line: $(current_file): $(FileLine[current_file])")
   if checkBreakPoint()
     throw(BreakPointStop())
   end

@@ -46,17 +46,17 @@ function getStackInfo()
   results = []
   cnt = 0
   for frame in stacks
-    debugger_file = r"(EventHandler\.jl)|(judy\.jl)|(MsgHandler\.jl)|(DebugInfo.jl)"
-    m = match(debugger_file, stackInfo.filepath)
+    debugger_file = r"(EventHandler\.jl)|(judy\.jl)|(MsgHandler\.jl)|(DebugInfo.jl)|(RunTime.jl)"
+    m = match(debugger_file, frame.filepath)
     if !isa(m, RegexMatch)
       cnt += 1
-      push!(result, Dict("frameId" => cnt,
-                         "name" => stackInfo.funcName,
-                         "path" => stackInfo.filepath,
-                         "line" => stackInfo.lineno))
+      push!(results, Dict("frameId" => cnt,
+                          "name" => frame.funcName,
+                          "path" => frame.filepath,
+                          "line" => frame.lineno))
     end
   end
-  return result
+  return results
 end
 
 
@@ -69,7 +69,8 @@ function collectVarInfo()
   for var in names(Main)[5:end]
     var_name = string(var)
     var_value = string(Core.eval(Main, var))
-    var_type = string(typeof(var))
+    type_ast = Meta.parse("typeof($(var))")
+    var_type = string(Core.eval(Main, type_ast))
     var_ref = 0
     ##if length(fieldnames(typeof(var))) != 0
     ##  var_ref = ref + 1

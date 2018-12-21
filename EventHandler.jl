@@ -101,14 +101,15 @@ function getVariables(ref)
 end
 
 function getStatus(reason)
-  current_file = RunTime.RunFileStack[end]
-  asts = RunTime.FileAst[current_file].asts
-  line = RunTime.FileLine[current_file]
-
-  if RunTime.getAstIndex(current_file, line) == lastindex(asts) + 1
+  # detect if program is at end
+  if length(RunTime.RunFileStack) == 0
     reason == "exited"
     return Dict("exitCode" => 0), "exited"
   end
+
+  current_file = RunTime.RunFileStack[end]
+  asts = RunTime.FileAst[current_file].asts
+  line = RunTime.FileLine[current_file]
 
   description = ""
   if reason == "step"

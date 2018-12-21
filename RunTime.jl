@@ -28,6 +28,7 @@ FileBp = Dict()
 # run file stack for `include`
 RunFileStack = []
 
+EntryFile = ""
 errors = ""
 
 struct NotImplementedError <: Exception end
@@ -37,6 +38,7 @@ struct BreakPointStop <: Exception end
 function setEntryFile(file)
   global RunFileStack
   global FileLine
+  EntryFile = file
   push!(RunFileStack, file)
   readSourceToAST(file)
 end
@@ -88,11 +90,13 @@ function run()
   global FileLine
   global FileAst
   global RunFileStack
+  global EntryFile
   # reset all file line
+  RunFileStack = []
+  push!(RunFileStack, EntryFile)
   for file in FileLine
-    FileLine[file[1]] = 1
+    FileLine[file] = 1
   end
-  RunFileStack = [RunFileStack[end]]
   # start running program
   for ast in FileAst[RunFileStack[end]].asts
     try
@@ -126,6 +130,10 @@ function Break()
   DebugInfo.collectStackInfo()
 end
 
+
+# go to next line
+# if next line is an empty line, 
+# we ignore this line and go until it's a valid ast
 function stepOver()
   global FileAst
   global FileLine
@@ -134,15 +142,20 @@ function stepOver()
   asts = FileAst[current_file].asts
   ast_index = getAstIndex(current_file, FileLine[current_file])
   if ast_index == lastindex(asts) + 1
+    pop!(RunFileStack)
     return false
   end
   # run next line code
+  if asts[ast_index] isa Nothing
+    # if we find a blank line, we skip it
+    updateLine()
+    stepOver()
+  end
+  # true line
   try
     Core.eval(Main, asts[ast_index])
     updateLine()
   catch err
-    # if we meet a breakpoint
-    # we just ignore it
     if err isa BreakPointStop
       Break()
       return true
@@ -153,11 +166,11 @@ function stepOver()
       return false
     end
   end
-  # collect information
   Break()
   return true
 end
 
+# go until we meet a bp
 function continous()
   global FileAst
   global FileLine
@@ -170,7 +183,7 @@ function continous()
 
   for ast in asts[ast_index: end]
     try
-      println("current line: $(FileLine[current_file]), ast idx: $(ast_index)")
+      println("log: current line: $(FileLine[current_file])")
       Core.eval(Main, ast)
       updateLine()
     catch err
@@ -185,6 +198,7 @@ function continous()
     end
   end
   # exit normally
+  pop!(RunFileStack)
   return res
 end
 
@@ -192,14 +206,24 @@ function stepIn()
   throw(NotImplementedError("step has not been implemented"))
 end
 
+# set breakpoint
+# if breakpoint is on blank line,
+# it will not be set
 function setBreakPoints(filepath, lineno)
   global FileBp
+  global FileAst
   result = []
   readSourceToAST(filepath)
-  FileBp[filepath] = lineno
+  FileBp[filepath] = []
+  asts = FileAst[filepath].asts
   for line in lineno
-    # here should verify bp correctness
-    push!(result, true)
+    ast_idx = getAstIndex(filepath, line)
+    if asts[ast_idx] isa Nothing
+      push!(result, false)
+    else
+      push!(FileBp[filepath], line)
+      push!(result, true)
+    end
   end
   return result
 end
@@ -226,6 +250,7 @@ function updateLine()
   end
 end
 
+# check whether current line meets a bp
 function checkBreakPoint()
   global RunFileStack
   global FileLine

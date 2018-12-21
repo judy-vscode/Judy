@@ -152,19 +152,5 @@ function getVarInfo(ref)
   end
   return result
 end
-
-
-
-# collect composite var info
-# should only be called by collectVarInfo
-# will collect recursivly for composite var
-#function collectCompositeVar(var)
-#  global Vars
-#  var_name = string(var)
-#  var_value = string(Core.eval(Main, var))
-#  var_type = string(typeof(a))
-#  var_ref = 0
-#  if length(filednames(typeof(var))) != 0
-#    for member in fieldnames(typeof(var))
       
 end # module DebugInfo

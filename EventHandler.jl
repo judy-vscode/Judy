@@ -97,7 +97,10 @@ end
 
 
 function getVariables(ref)
-  return RunTime.DebugInfo.getVarInfo()
+  if(ref > 10000)
+    ref = 1
+  end
+  return RunTime.DebugInfo.getVarInfo(ref)
 end
 
 function getStatus(reason)

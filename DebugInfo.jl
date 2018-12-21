@@ -12,12 +12,35 @@ mutable struct VarInfo
   name::AbstractString
   vtype::AbstractString
   value::AbstractString
-  ref::Int64
 end
 
-# vars: vars[ModuleName] = [VarInfo, VarInfo, ...]
-global_vars = Dict()
-local_vars = Dict()
+# Tree structure to log variable
+Domain = Union{VarInfo, AbstractString}
+mutable struct TreeNode
+  # var value could be: VarInfo or Module name (at top level)
+  content::Domain
+  parent::Int64
+  children::Array{Int64}
+end
+mutable struct Tree
+  nodes::Array{TreeNode}
+end
+Tree() = Tree([])
+function addRoot!(tree::Tree, node::TreeNode)
+  push!(tree.nodes, node)
+end
+function addChild!(tree::Tree, id::Int64, var::Domain)
+  1 <= id <= length(tree.nodes) || throw(BoundsError(tree, id))
+  push!(tree.nodes, TreeNode(var, id, []))
+  child = length(tree.nodes)
+  push!(tree.nodes[id].children, child)
+  return length(tree.nodes)
+end
+children(tree, id) = tree.nodes[id].children
+parent(tree,id) = tree.nodes[id].parent
+
+# Vars: Vars[ModuleName] = VarTree
+Vars = Tree()
 # stack frame
 stacks = []
 
@@ -63,42 +86,80 @@ end
 # collect variable info
 # currently we only collect Main module
 function collectVarInfo()
-  global global_vars
-  global_vars = Dict()
-  module_var = []
+  global Vars
+  Vars = Tree()
+  addRoot!(Vars, TreeNode("Main", 1, []))
   for var in names(Main)[5:end]
+    println("top level collect: $(var)")
+    # collect var name
     var_name = string(var)
-    var_value = string(Core.eval(Main, var))
+    # collect var type
     type_ast = Meta.parse("typeof($(var))")
-    var_type = string(Core.eval(Main, type_ast))
-    var_ref = 0
-    ##if length(fieldnames(typeof(var))) != 0
-    ##  var_ref = ref + 1
-    ##end
-    var_info = VarInfo(var_name, var_type, var_value, var_ref)
-    push!(module_var, var_info)
+    vtype = Core.eval(Main, type_ast)
+    var_type = string(vtype)
+    if var_type == "DataType" || var_type == "Module"
+      continue
+    end
+    # collect var value
+    var_value = string(Core.eval(Main, var))
+    # collect var ref
+    var_info = VarInfo(var_name, var_type, var_value)
+    ref = addChild!(Vars, 1, var_info)
+    # decomposite var
+    if length(fieldnames(vtype)) != 0
+      decomposeVar(vtype, var, ref)
+    end
+    println("$(var) collects successfully")
   end
-  global_vars[Main] = module_var
 end
 
+# decompose var and log them into Vars recursivly
+function decomposeVar(vtype::DataType, var::Symbol, parent::Int64)
+  global Vars
+  println(vtype)
+  for field in fieldnames(vtype)
+    var_name = string(field)
+    ast = Meta.parse("getfield($(var), :$(field))")
+    println(ast)
+    var_value = string(Core.eval(Main, ast))
+    ast = Meta.parse("typeof($(var).$(field))")
+    vtype = Core.eval(Main, ast)
+    var_type = string(vtype)
+    var_info = VarInfo(var_name, var_type, var_value)
+    ref = addChild!(Vars, parent, var_info)
+    if length(fieldnames(vtype)) != 0
+      devar = Core.eval(Main, Meta.parse("$(var).$(field)"))
+      decomposeVar(vtype, Symbol(devar), ref)
+    end
+  end
+end
 
-function getVarInfo()
-  global global_vars
+function getVarInfo(ref)
+  global Vars
   result = []
-  for var in global_vars[Main]
+  var_refs = children(Vars, ref)
+  println(var_refs)
+  for ref in var_refs
+    var_ref = 0
+    if length(children(Vars, ref)) != 0
+      var_ref = ref
+    end
+    var = Vars.nodes[ref].content
     push!(result, Dict("name" => var.name,
                        "value" => var.value,
                        "type" => var.vtype,
-                       "variablesReference" => var.ref))
+                       "variablesReference" => var_ref))
   end
   return result
 end
+
+
 
 # collect composite var info
 # should only be called by collectVarInfo
 # will collect recursivly for composite var
 #function collectCompositeVar(var)
-#  global global_vars
+#  global Vars
 #  var_name = string(var)
 #  var_value = string(Core.eval(Main, var))
 #  var_type = string(typeof(a))

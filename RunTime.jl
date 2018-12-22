@@ -100,8 +100,8 @@ function run()
   # start running program
   for ast in FileAst[RunFileStack[end]].asts
     try
-      updateLine()
       Core.eval(Main, ast)
+      updateLine()
     catch err
       # if we run to a breakpoint
       # we will catch an exception and collect info

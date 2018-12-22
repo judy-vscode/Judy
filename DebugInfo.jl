@@ -90,7 +90,7 @@ function collectVarInfo()
   Vars = Tree()
   addRoot!(Vars, TreeNode("Main", 1, []))
   for var in names(Main)[5:end]
-    println("top level collect: $(var)")
+    #println("top level collect: $(var)")
     # collect var name
     var_name = string(var)
     # collect var type
@@ -109,18 +109,18 @@ function collectVarInfo()
     if length(fieldnames(vtype)) != 0
       decomposeVar(vtype, var, ref)
     end
-    println("$(var) collects successfully")
+    #println("$(var) collects successfully")
   end
 end
 
 # decompose var and log them into Vars recursivly
 function decomposeVar(vtype::DataType, var::Symbol, parent::Int64)
   global Vars
-  println(vtype)
+  #println(vtype)
   for field in fieldnames(vtype)
     var_name = string(field)
     ast = Meta.parse("getfield($(var), :$(field))")
-    println(ast)
+    #println(ast)
     var_value = string(Core.eval(Main, ast))
     ast = Meta.parse("typeof($(var).$(field))")
     vtype = Core.eval(Main, ast)
@@ -138,7 +138,7 @@ function getVarInfo(ref)
   global Vars
   result = []
   var_refs = children(Vars, ref)
-  println(var_refs)
+  #println(var_refs)
   for ref in var_refs
     var_ref = 0
     if length(children(Vars, ref)) != 0

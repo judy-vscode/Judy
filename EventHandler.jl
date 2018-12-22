@@ -51,7 +51,6 @@ function getStatus(reason)
   end
 
   current_file = RunTime.RunFileStack[end]
-  asts = RunTime.FileAst[current_file].asts
   line = RunTime.FileLine[current_file]
 
   description = ""

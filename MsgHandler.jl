@@ -7,13 +7,8 @@ struct UnKnownMethod <: Exception end
 event_id = 0
 
 # recieve message from server
-# for test: 00000064{"jsonrpc": "2.0", "id": 1, "method": "launch", "params": "abc"}
 function msgRecv(sock)
   # read comming message length
-  # print("msgRecv",curPos)
-  # prev_msg = read(sock, curPos)
-  # println("prev_msg",prev_msg)
-  # dilim = read(sock,1) #eliminate redundant 0x0a
   len = read(sock, 8)
   len_str = ""
   for num in len
@@ -38,8 +33,8 @@ function msgParse(msg)
   id = json_obj["id"]
   method = json_obj["method"]
   params = json_obj["params"]
-  # len, id, method, params = MsgHandler.msgParse(recv)
-  println("id: $(id), method: $(method), params: $(params)")
+
+  println("recv id: $(id), method: $(method)")
 
   return (id, method, params)
 

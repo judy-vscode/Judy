@@ -21,7 +21,6 @@ function run()
 
     # handle events
     id, method, params = MsgHandler.msgParse(msg)
-    println(method)
 
     if method == "initialize"
       event = Dict()

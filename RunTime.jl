@@ -38,7 +38,7 @@ struct BreakPointStop <: Exception end
 function setEntryFile(file)
   global RunFileStack
   global FileLine
-  EntryFile = file
+  EntryFile = abspath(file)
   push!(RunFileStack, file)
   readSourceToAST(file)
 end
@@ -100,8 +100,12 @@ function run()
   # start running program
   for ast in FileAst[RunFileStack[end]].asts
     try
-      updateLine()
-      Core.eval(Main, ast)
+      if !tryRunNewFile(ast)
+        Core.eval(Main, ast)
+        updateLine()
+      else
+        return
+      end
     catch err
       # if we run to a breakpoint
       # we will catch an exception and collect info
@@ -114,8 +118,46 @@ function run()
     end
   end
   # exit normally
+  pop!(RunFileStack)
+  if length(RunFileStack) != 0
+    continous()
+  end
   return
 end
+
+# check whether is `include` call
+# if it is & included file has breakpoints,
+# we manually run it
+function tryRunNewFile(ast, isStepOver = false)
+  global RunFileStack
+  local isIncludeCall = false
+  local filename = ""
+  try
+    if ast.args[1].code[1].args[1] == (:include)
+      filename = abspath(joinpath(RunFileStack[end], "../" * ast.args[1].code[1].args[2]))
+      isIncludeCall = true
+    end
+  catch err
+    # we may get bounderror
+    return false
+  end
+  if isIncludeCall
+    if !haskey(FileAst, filename)
+      # in this case: no breakpoint has been set to this file
+      # we just use eval to run include call
+      return false
+    else
+      # skip include call (we run it manually)
+      println("detect include file: $(filename)")
+      updateLine()
+      push!(RunFileStack, filename)
+      FileLine[filename] = 1
+      continous(isStepOver)
+    end
+  end
+  return isIncludeCall
+end
+    
 
 # update info from this point
 function Break()
@@ -153,8 +195,12 @@ function stepOver()
   end
   # true line
   try
-    Core.eval(Main, asts[ast_index])
-    updateLine()
+    if !tryRunNewFile(ast, true)
+      Core.eval(Main, asts[ast_index])
+      updateLine()
+    else
+      return true
+    end
   catch err
     if err isa BreakPointStop
       Break()
@@ -171,7 +217,7 @@ function stepOver()
 end
 
 # go until we meet a bp
-function continous()
+function continous(stopOnPopFile = false)
   global FileAst
   global FileLine
   global RunFileStack
@@ -183,9 +229,12 @@ function continous()
 
   for ast in asts[ast_index: end]
     try
-      println("log: current line: $(FileLine[current_file])")
-      Core.eval(Main, ast)
-      updateLine()
+      if !tryRunNewFile(ast)
+        Core.eval(Main, ast)
+        updateLine()
+      else
+        return res
+      end
     catch err
       if err isa BreakPointStop
         Break()
@@ -199,6 +248,9 @@ function continous()
   end
   # exit normally
   pop!(RunFileStack)
+  if !stopOnPopFile && length(RunFileStack) != 0
+    res = continous()
+  end
   return res
 end
 
@@ -213,6 +265,7 @@ function setBreakPoints(filepath, lineno)
   global FileBp
   global FileAst
   result = []
+  filepath = abspath(filepath)
   readSourceToAST(filepath)
   FileBp[filepath] = []
   asts = FileAst[filepath].asts

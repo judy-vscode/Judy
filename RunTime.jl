@@ -38,9 +38,10 @@ struct BreakPointStop <: Exception end
 function setEntryFile(file)
   global RunFileStack
   global FileLine
+  global EntryFile
   EntryFile = abspath(file)
-  push!(RunFileStack, file)
-  readSourceToAST(file)
+  push!(RunFileStack, EntryFile)
+  readSourceToAST(EntryFile)
 end
 
 function readSourceToAST(file)
@@ -98,6 +99,7 @@ function run()
     FileLine[file] = 1
   end
   # start running program
+  println(EntryFile)
   for ast in FileAst[RunFileStack[end]].asts
     try
       if !tryRunNewFile(ast)

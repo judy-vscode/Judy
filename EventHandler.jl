@@ -2,6 +2,70 @@ module EventHandler
 
 include("RunTime.jl")
 
+function handleEvent(method, params)
+
+  result = Dict()
+  event = ""
+  event_method = ""
+
+  if method == "initialize"
+    event = Dict()
+    event_method = "initialized"
+
+  elseif method == "launch"
+    EventHandler.init(params["program"])
+    if !haskey(params, "stopOnEntry")
+      put!(kRunTimeIn, "launch")
+      @async EventHandler.run()
+      finish_sig = take!(RunTime.kRunTimeOut)
+      event, event_method = EventHandler.getStatus("breakpoint")
+    else
+      event_method = "stopped"
+      event = Dict("reason" => "entry",
+                   "description" => "stop on entry",
+                   "text" => " ")
+    end
+
+  elseif method == "setBreakPoints"
+    filePath = params["path"]
+    lineno = params["lines"]
+    result = EventHandler.setBreakPoints(filePath, lineno)
+
+  elseif method == "configurationDone"
+    result = Dict()
+
+  elseif method == "continue"
+    put!(RunTime.kRunTimeIn, "go on")
+    @async EventHandler.RunTime.continous()
+    finish_sig = take!(RunTime.kRunTimeOut)
+    event, event_method = EventHandler.getStatus("breakpoint")
+    result = Dict("allThreadsContinued" => true)
+
+  elseif method == "next"
+    put!(RunTime.kRunTimeIn, "go on")
+    @async EventHandler.RunTime.stepOver()
+    finish_sig = take!(RunTime.kRunTimeOut)
+    event, event_method = EventHandler.getStatus("step")
+
+  elseif method == "stackTrace"
+    result = EventHandler.getStackTrace()
+
+  elseif method == "scopes"
+    frame_id = params["frameId"]
+    result = EventHandler.getScopes(frame_id)
+
+  elseif method == "variables"
+    var_ref = params["variablesReference"]
+    result = EventHandler.getVariables(var_ref)
+
+  else
+    # throw(MsgHandler.UnKnownMethod("$(method) can't be called"))
+    result = "$method can't be called"
+  end
+  return result, event, event_method
+end
+
+
 
 function init(file)
   RunTime.setEntryFile(file)

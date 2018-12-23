@@ -16,7 +16,7 @@ function handleEvent(method, params)
     EventHandler.init(params["program"])
     if !haskey(params, "stopOnEntry")
       put!(kRunTimeIn, "launch")
-      @async EventHandler.run()
+      @async EventHandler.RunTime.run()
       finish_sig = take!(RunTime.kRunTimeOut)
       event, event_method = EventHandler.getStatus("breakpoint")
     else

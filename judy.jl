@@ -12,67 +12,17 @@ function run()
   sock = accept(server)
   client = connect(18001)
 
+
   while isopen(sock)
     # get events
     msg = MsgHandler.msgRecv(sock)
-    result = Dict()
-    event = ""
-    event_method = ""
 
-    # handle events
+    # handle msgs
     id, method, params = MsgHandler.msgParse(msg)
-
-    if method == "initialize"
-      event = Dict()
-      event_method = "initialized"
-
-    elseif method == "launch"
-      EventHandler.init(params["program"])
-      if !haskey(params, "stopOnEntry")
-        EventHandler.RunTime.run()
-        event, event_method = EventHandler.getStatus("breakpoint")
-      else
-        event_method = "stopped"
-        event = Dict("reason" => "entry",
-                     "description" => "stop on entry",
-                     "text" => " ")
-      end
-
-    elseif method == "setBreakPoints"
-      filePath = params["path"]
-      lineno = params["lines"]
-      result = EventHandler.setBreakPoints(filePath, lineno)
-
-    elseif method == "configurationDone"
-      result = Dict()
-
-    elseif method == "continue"
-      result = EventHandler.RunTime.continous()
-      event, event_method = EventHandler.getStatus("breakpoint")
-
-    elseif method == "next"
-      EventHandler.RunTime.stepOver()
-      event, event_method = EventHandler.getStatus("step")
-
-    elseif method == "stackTrace"
-      result = EventHandler.getStackTrace()
-
-    elseif method == "scopes"
-      frame_id = params["frameId"]
-      result = EventHandler.getScopes(frame_id)
-
-    elseif method == "variables"
-      var_ref = params["variablesReference"]
-      result = EventHandler.getVariables(var_ref)
-
-    else
-      # throw(MsgHandler.UnKnownMethod("$(method) can't be called"))
-      result = "$method can't be called"
-    end
-
+    # handle events
+    result, event, event_method = EventHandler.handleEvent(method, params)
     # prepare respond
     response = MsgHandler.msgCreate(id, result)
-
     # send response
     print(client, response)
 

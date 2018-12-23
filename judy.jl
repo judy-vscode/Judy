@@ -29,7 +29,7 @@ function run()
     elseif method == "launch"
       EventHandler.init(params["program"])
       if !haskey(params, "stopOnEntry")
-        EventHandler.run()
+        EventHandler.RunTime.run()
         event, event_method = EventHandler.getStatus("breakpoint")
       else
         event_method = "stopped"

@@ -94,6 +94,8 @@ function run()
   global FileAst
   global RunFileStack
   global EntryFile
+  # wait until 'launch'
+  while take!(kRunTimeOut)
   # reset all file line
   RunFileStack = []
   push!(RunFileStack, EntryFile)

@@ -41,9 +41,10 @@ struct BreakPointStop <: Exception end
 function setEntryFile(file)
   global RunFileStack
   global FileLine
+  global EntryFile
   EntryFile = abspath(file)
-  push!(RunFileStack, file)
-  readSourceToAST(file)
+  push!(RunFileStack, EntryFile)
+  readSourceToAST(EntryFile)
 end
 
 function readSourceToAST(file)
@@ -94,8 +95,9 @@ function run()
   global FileAst
   global RunFileStack
   global EntryFile
+  global kRunTimeOut
   # wait until 'launch'
-  while take!(kRunTimeOut)
+  while take!(kRunTimeIn) != "launch" end
   # reset all file line
   RunFileStack = []
   push!(RunFileStack, EntryFile)
@@ -103,7 +105,18 @@ function run()
     FileLine[file] = 1
   end
   # start running program
-  continous()
+  while true
+    cmd = take!(kRunTimeIn)
+    notFinish = true
+    if cmd == "continue"
+      notFinish = continous()
+    elseif cmd == "stepOver"
+      notFinish = stepOver()
+    end
+    if !notFinish
+      break
+    end
+  end
   return
 end
 
@@ -154,9 +167,12 @@ function Break()
   DebugInfo.collectVarInfo()
   # collect stack info
   DebugInfo.collectStackInfo()
-  put!(kRunTimeOut, "wait")
+  put!(kRunTimeOut, "collected")
   # wait until get "go on" info
-  while take!(kRunTimeIn) == "launch" end
+  sig = take!(kRunTimeIn)
+  if sig != "go on"
+    println("Error: Break() meets $(sig)")
+  end
 end
 
 
@@ -172,7 +188,7 @@ function stepOver()
   ast_index = getAstIndex(current_file, FileLine[current_file])
   if ast_index == lastindex(asts) + 1
     pop!(RunFileStack)
-    return false
+    return length(RunFileStack) != 0
   end
   # run next line code
   if asts[ast_index] isa Nothing
@@ -182,7 +198,7 @@ function stepOver()
   end
   # true line
   try
-    if !tryRunNewFile(ast, true)
+    if !tryRunNewFile(asts[ast_index], true)
       Core.eval(Main, asts[ast_index])
       updateLine()
     else
@@ -213,7 +229,7 @@ function continous(stopOnPopFile = false)
   global kRunTimeOut
   if length(RunFileStack) == 0
     put!(kRunTimeOut, "finish")
-    return
+    return false
   end
   current_file = RunFileStack[end]
   asts = FileAst[current_file].asts
@@ -225,17 +241,17 @@ function continous(stopOnPopFile = false)
         Core.eval(Main, ast)
         updateLine()
       else
-        return
+        return true
       end
     catch err
       if err isa BreakPointStop
         Break()
+        return true
       else
         global errors
         errors = string(err)
         println("runtime errors: $(errors)")
       end
-      return
     end
   end
   # exit normally
@@ -243,7 +259,7 @@ function continous(stopOnPopFile = false)
   if !stopOnPopFile
     continous()
   end
-  # since only when stepOver will make stopOnPopFile true
+  # since only stepOver will make stopOnPopFile true
   # we don't need put!(kRunTimeOut) here
 end
 

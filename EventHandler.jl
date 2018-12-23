@@ -14,9 +14,10 @@ function handleEvent(method, params)
 
   elseif method == "launch"
     EventHandler.init(params["program"])
+    put!(RunTime.kRunTimeIn, "launch")
+    @async EventHandler.RunTime.run()
     if !haskey(params, "stopOnEntry")
-      put!(kRunTimeIn, "launch")
-      @async EventHandler.RunTime.run()
+      put!(RunTime.kRunTimeIn, "continue")
       finish_sig = take!(RunTime.kRunTimeOut)
       event, event_method = EventHandler.getStatus("breakpoint")
     else
@@ -36,14 +37,15 @@ function handleEvent(method, params)
 
   elseif method == "continue"
     put!(RunTime.kRunTimeIn, "go on")
-    @async EventHandler.RunTime.continous()
+    put!(RunTime.kRunTimeIn, "continue")
     finish_sig = take!(RunTime.kRunTimeOut)
+    println("EventHandler: recv $(finish_sig)")
     event, event_method = EventHandler.getStatus("breakpoint")
     result = Dict("allThreadsContinued" => true)
 
   elseif method == "next"
     put!(RunTime.kRunTimeIn, "go on")
-    @async EventHandler.RunTime.stepOver()
+    put!(RunTime.kRunTimeIn, "stepOver")
     finish_sig = take!(RunTime.kRunTimeOut)
     event, event_method = EventHandler.getStatus("step")
 
@@ -90,7 +92,23 @@ end
 
 # get stack trace for the current collection
 function getStackTrace()
-  return RunTime.DebugInfo.getStackInfo()
+  #return RunTime.DebugInfo.getStackInfo()
+  info = RunTime.DebugInfo.getStackInfo()
+  results = []
+  path = ""
+  if length(RunTime.RunFileStack) != 0
+    path = RunTime.RunFileStack[end]
+  else
+    return info
+  end
+  push!(results, Dict("frameId" => 0,
+                      "name" => "top",
+                      "path" => path,
+                      "line" => RunTime.FileLine[path]))
+  for frame in info
+    push!(results, frame)
+  end
+  return results
 end
 
 

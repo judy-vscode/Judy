@@ -8,20 +8,7 @@ function init(file)
 end
 
 function setBreakPoints(filepath, lineno)
-  res = RunTime.setBreakPoints(filepath, lineno)
-  result = []
-  id = 1
-  for idx in collect(1:1:length(lineno))
-    if res[idx]
-      push!(result, Dict("verified" => true,
-                         "line" => lineno[idx],
-                         "id" => id))
-      id += 1
-    else
-      push!(result, Dict("verified" => false))
-    end
-  end
-  return result
+  return RunTime.setBreakPoints(filepath, lineno)
 end
 
 # get stack trace for the current collection
@@ -52,12 +39,11 @@ function getStatus(reason)
 
   current_file = RunTime.RunFileStack[end]
   line = RunTime.FileLine[current_file]
-
   description = ""
   if reason == "step"
     description = "step over (ignore breakpoints)"
   elseif reason == "breakpoint"
-    description = "hit breakpoint: " * "$(line)"
+    description = "hit breakpoint at: " * "$(line)"
   end
   result = Dict("reason" => reason,
                 "description" => description,

@@ -2,6 +2,9 @@ module RunTime
 
 include("DebugInfo.jl")
 
+const kRunTimeOut = Channel{AbstractString}(32)
+const kRunTimeIn = Channel{AbstractString}(33)
+
 mutable struct BreakPoints
   filepath::AbstractString
   lineno::Array{Int64,1}
@@ -92,6 +95,9 @@ function run()
   global FileAst
   global RunFileStack
   global EntryFile
+  global kRunTimeOut
+  # wait until 'launch'
+  while take!(kRunTimeIn) != "launch" end
   # reset all file line
   RunFileStack = []
   push!(RunFileStack, EntryFile)
@@ -99,30 +105,17 @@ function run()
     FileLine[file] = 1
   end
   # start running program
-  println(EntryFile)
-  for ast in FileAst[RunFileStack[end]].asts
-    try
-      if !tryRunNewFile(ast)
-        Core.eval(Main, ast)
-        updateLine()
-      else
-        return
-      end
-    catch err
-      # if we run to a breakpoint
-      # we will catch an exception and collect info
-      if err isa BreakPointStop
-        Break()
-      else
-        println(err)
-      end
-      return
+  while true
+    cmd = take!(kRunTimeIn)
+    notFinish = true
+    if cmd == "continue"
+      notFinish = continous()
+    elseif cmd == "stepOver"
+      notFinish = stepOver()
     end
-  end
-  # exit normally
-  pop!(RunFileStack)
-  if length(RunFileStack) != 0
-    continous()
+    if !notFinish
+      break
+    end
   end
   return
 end
@@ -166,16 +159,21 @@ function Break()
   # debug info
   global RunFileStack
   global FileLine
-  # current_line = FileLine[RunFileStack[end]]
-  println(stacktrace())
-  current_line = stacktrace()[2].line
-  FileLine[RunFileStack[end]] = current_line
 
+  global kRunTimeIn
+  global kRunTimeOut
+  current_line = FileLine[RunFileStack[end]]
   println("hit breakpoint: $(RunFileStack[end]): $(current_line)")
   # collect variable info
   DebugInfo.collectVarInfo()
   # collect stack info
   DebugInfo.collectStackInfo()
+  put!(kRunTimeOut, "collected")
+  # wait until get "go on" info
+  sig = take!(kRunTimeIn)
+  if sig != "go on"
+    println("Error: Break() meets $(sig)")
+  end
 end
 
 
@@ -191,7 +189,7 @@ function stepOver()
   ast_index = getAstIndex(current_file, FileLine[current_file])
   if ast_index == lastindex(asts) + 1
     pop!(RunFileStack)
-    return false
+    return length(RunFileStack) != 0
   end
   # run next line code
   if asts[ast_index] isa Nothing
@@ -201,11 +199,11 @@ function stepOver()
   end
   # true line
   try
-    if !tryRunNewFile(ast, true)
+    if !tryRunNewFile(asts[ast_index], true)
       Core.eval(Main, asts[ast_index])
       updateLine()
     else
-      return true
+      throw(BreakPointStop(""))
     end
   catch err
     if err isa BreakPointStop
@@ -223,15 +221,20 @@ function stepOver()
 end
 
 # go until we meet a bp
+# if stopOnPopFile is true: we return (withou Break())
+# when a file is finished executing
 function continous(stopOnPopFile = false)
   global FileAst
   global FileLine
   global RunFileStack
+  global kRunTimeOut
+  if length(RunFileStack) == 0
+    put!(kRunTimeOut, "finish")
+    return false
+  end
   current_file = RunFileStack[end]
   asts = FileAst[current_file].asts
   ast_index = getAstIndex(current_file, FileLine[current_file])
-
-  res = Dict("allThreadsContinued" => true)
 
   for ast in asts[ast_index: end]
     try
@@ -244,25 +247,26 @@ function continous(stopOnPopFile = false)
         Core.eval(Main, ast)
         updateLine()
       else
-        return res
+        return true
       end
     catch err
       if err isa BreakPointStop
         Break()
+        return true
       else
         global errors
         errors = string(err)
         println("runtime errors: $(errors)")
       end
-      return res
     end
   end
   # exit normally
   pop!(RunFileStack)
-  if !stopOnPopFile && length(RunFileStack) != 0
-    res = continous()
+  if !stopOnPopFile
+    continous()
   end
-  return res
+  # since only stepOver will make stopOnPopFile true
+  # we don't need put!(kRunTimeOut) here
 end
 
 function stepIn()

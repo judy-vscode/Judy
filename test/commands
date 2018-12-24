@@ -1,6 +1,8 @@
 00000065{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}
 
-00000088{"jsonrpc": "2.0", "id": 1, "method": "launch", "params": {"stopOnEntry":"stopOnEntry"}}
+00000115{"jsonrpc": "2.0", "id": 3, "method": "launch", "params": {"program":"test/test1.jl", "stopOnEntry":"stopOnEntry"}}
+
+00000086{"jsonrpc": "2.0", "id": 3, "method": "launch", "params": {"program":"test/test1.jl"}}
 
 00000099{"jsonrpc": "2.0", "id": 1, "method": "setBreakPoints", "params": {"path":"whatever", "lines":[4]}}
 

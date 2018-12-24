@@ -82,11 +82,12 @@ function getStackInfo()
   return results
 end
 
+#=
 function evalAst(ast)
   global stacks
   if ast.head == Symbol("call")
     current_stack = stackInfo()
-
+=#
 
 # collect variable info
 # currently we only collect Main module

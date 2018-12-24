@@ -175,6 +175,24 @@ function Break()
   end
 end
 
+function inBlockBreak(file, lineno)
+  global RunFileStack
+  global FileLine
+  global kRunTimeIn
+  global kRunTimeOut
+  println("hit breakpoint: $(file): $(lineno)")
+  # collect variable info
+  DebugInfo.collectVarInfo()
+  # collect stack info
+  DebugInfo.collectStackInfo()
+  put!(kRunTimeOut, "collected")
+  # wait until get "go on" info
+  sig = take!(kRunTimeIn)
+  if sig != "go on"
+    println("Error: Break() meets $(sig)")
+  end
+end
+
 
 # go to next line
 # if next line is an empty line, 
@@ -278,16 +296,73 @@ function setBreakPoints(filepath, lineno)
   readSourceToAST(filepath)
   FileBp[filepath] = []
   asts = FileAst[filepath].asts
+  blocks = FileAst[filepath].blocks
   for line in lineno
     ast_idx = getAstIndex(filepath, line)
+    # outside empty line
     if asts[ast_idx] isa Nothing
       push!(result, false)
     else
-      push!(FileBp[filepath], line)
-      push!(result, true)
+      ast, res = trySetBpInBlock(filepath, line)
+      if res == 0 || res == 1
+        push!(FileBp[filepath], line)
+        push!(result, true)
+        # set modified ast to filepath
+        if res == 1
+          FileAst[filepath].asts[ast_idx] = ast
+        end
+      elseif res == 2
+        push!(result, false)
+      end
     end
   end
   return result
+end
+
+# check and set breakpoint inside blocks
+# return: 0: line not in block
+#         1: line in block and valid
+#         2: line in block but not valid
+function trySetBpInBlock(filepath, line)
+  blocks = FileAst[filepath].blocks
+  result = 0
+  for block in blocks
+    if line <= block.startline
+      # means it is not in a block
+      # setting bp on the first line of block
+      # will only be stopped once
+      break
+    end
+    if block.startline < line <= block.endline
+      # means it is in a block
+      modified_code = ""
+      ofs = 0
+      for code_line in split(block.raw_code, "\n")
+        if line == block.startline + ofs
+          # means we detect the position to set bp
+          try
+            if Meta.parse(code_line) isa Nothing
+              # means bp are set at an empty line, which is not allowed
+              result = 2
+            else
+              result = 1
+              code_line = "EventHandler.RunTime.inBlockBreak(\"$(filepath)\", $(line));" * code_line
+            end
+          catch err
+            # some errors may cause when try to parse like `else`
+            result = 2
+          end
+        end
+        modified_code = modified_code * "\n" * code_line
+        ofs += 1
+      end
+      println("modified code: $(modified_code)")
+      ast = Meta.lower(Main, parseInputLine(modified_code))
+      return ast, result
+    end
+  end
+  ast = Meta.lower(Main, parseInputLine(""))
+  return ast, result
 end
 
 # update line for run/next/continous call

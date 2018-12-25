@@ -69,7 +69,7 @@ function getStackInfo()
   results = []
   cnt = 0
   for frame in stacks
-    debugger_file = r"(EventHandler\.jl)|(judy\.jl)|(MsgHandler\.jl)|(DebugInfo.jl)|(RunTime.jl)"
+    debugger_file = r"(EventHandler\.jl)|(judy\.jl)|(MsgHandler\.jl)|(DebugInfo\.jl)|(RunTime\.jl)"
     m = match(debugger_file, frame.filepath)
     if !isa(m, RegexMatch)
       cnt += 1

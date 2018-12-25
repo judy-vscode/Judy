@@ -78,8 +78,8 @@ function readSourceToAST(file)
           push!(blocks, blockinfo)
           block_start = 0
         end
-        ast = Meta.lower(Main, ex)
-        push!(asts, ast)
+        # ast = Meta.lower(Main, ex)
+        push!(asts, ex)
         s = ""
       end
     end
@@ -176,10 +176,9 @@ function Break()
   DebugInfo.collectStackInfo()
   put!(kRunTimeOut, "collected")
   # wait until get "go on" info
-  sig = take!(kRunTimeIn)
-  if sig != "go on"
-    println("Error: Break() meets $(sig)")
-  end
+  # sig = take!(kRunTimeIn)
+  while take!(kRunTimeIn) != "go on" end
+    # println("Error: Break() meets $(sig)")
 end
 
 

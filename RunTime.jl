@@ -102,8 +102,6 @@ function run()
 
   current_file = RunFileStack[end]
   asts = FileAst[current_file].asts
-  print(asts)
-  print("now you will continue")
 
   while take!(kRunTimeIn) != "launch" end
   # reset all file line
@@ -117,12 +115,6 @@ function run()
     cmd = take!(kRunTimeIn)
     notFinish = true
     if cmd == "continue"
-#=
-      current_file = RunFileStack[end]
-      asts = FileAst[current_file].asts
-      print(asts)
-      print("now you will continue")
-=#
       notFinish = continous()
     elseif cmd == "stepOver"
       notFinish = stepOver()
@@ -255,9 +247,11 @@ function continous(stopOnPopFile = false)
       if !tryRunNewFile(ast)
         if ast isa Nothing
           continue
-        else
-          println(ast)
-          print("RunFileStack",RunFileStack)
+        end
+        if FileLine[current_file] == 1
+          if checkBreakPoint()
+            throw(BreakPointStop())
+          end
         end
         Core.eval(Main, ast)
         updateLine()
@@ -315,11 +309,8 @@ function setBreakPoints(filepath, lineno)
       ast.args[2].args[ofs] = Expr(:call, Break)
       ast_index = getAstIndex(filepath, realLineno)
       FileAst[filepath].asts[ast_index] = ast
-      eval(ast)
     end
   end
-
-  print("in setBreakPoints", FileAst[filepath].asts)    
   FileBp[filepath] = lineno
   return result
 end
@@ -335,7 +326,7 @@ function getRealPos(filepath, bpline)
     #Another thing is we should make the mapping from original code pos to insert offset
     #considering blank line  
   for blockinfo in blocks
-    if blockinfo.startline <= bpline <= blockinfo.endline
+    if blockinfo.startline < bpline <= blockinfo.endline
       ast = parseInputLine(blockinfo.raw_code)
       codelines = split(blockinfo.raw_code,"\n")
       # for codeline in codelines:
@@ -404,7 +395,6 @@ function updateLine()
     end
   end
   FileLine[current_file] += ofs
-  println("next line", FileLine[current_file])
   if checkBreakPoint()
     throw(BreakPointStop())
   end
@@ -419,6 +409,7 @@ function checkBreakPoint()
   current_line = FileLine[RunFileStack[end]]
   ast, ofs, realLineno = getRealPos(current_file, current_line)
   FileLine[current_file] = realLineno
+  print("check",realLineno)
   if realLineno in FileBp[current_file]
     return true
   else

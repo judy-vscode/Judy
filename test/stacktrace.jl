@@ -9,9 +9,9 @@ end
 
 
 
-varinf = 1
+varoutf = 1
 function f()
-	varinsb = 2
+	varinf = 2
 	gm.g()
 end
 
@@ -21,9 +21,6 @@ module gm
 		print("sb")
 	end
 end
-
-
-
 
 
 # println(testStackTrace())

@@ -27,7 +27,7 @@ julia judy.jl ./test/breakpoint.jl
 test scripts for test1.jl
 
 00000065{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}
-00000104{"jsonrpc": "2.0", "id": 2, "method": "setBreakPoints", "params": {"path":"test/test3.jl", "lines":[2]}}
+00000106{"jsonrpc": "2.0", "id": 2, "method": "setBreakPoints", "params": {"path":"test/test2.jl", "lines":[2,4]}}
 00000115{"jsonrpc": "2.0", "id": 3, "method": "launch", "params": {"program":"test/test1.jl", "stopOnEntry":"stopOnEntry"}}
 00000063{"jsonrpc": "2.0", "id": 4, "method": "continue", "params": {}}
 00000065{"jsonrpc": "2.0", "id": 5, "method": "stackTrace", "params": {}}

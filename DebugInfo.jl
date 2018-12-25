@@ -45,6 +45,7 @@ Vars = Tree()
 stacks = []
 
 
+
 # should be called when hit a breakpoint
 # collect stack info, debugger function will be
 # deleted at getStackInfo()
@@ -85,8 +86,14 @@ end
 #=
 function evalAst(ast)
   global stacks
+  global RunTime.RunFileStack
+  global RunTime.FileLine
   if ast.head == Symbol("call")
-    current_stack = stackInfo()
+    current_file = RunTime.RunFileStack[end]
+    current_stack = stackInfo(string(ast.args[1]), current_file, RunTime.FileLine[current_file])
+    push!(stacks,current_stack)
+  end
+end
 =#
 
 # collect variable info

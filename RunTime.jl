@@ -44,7 +44,9 @@ function setEntryFile(file)
   global EntryFile
   EntryFile = abspath(file)
   push!(RunFileStack, EntryFile)
-  readSourceToAST(EntryFile)
+  if !(EntryFile in keys(FileAst))
+    readSourceToAST(EntryFile)
+  end
 end
 
 function readSourceToAST(file)
@@ -97,10 +99,16 @@ function run()
   global EntryFile
   global kRunTimeOut
   # wait until 'launch'
+
+  current_file = RunFileStack[end]
+  asts = FileAst[current_file].asts
+  print(asts)
+  print("now you will continue")
+
   while take!(kRunTimeIn) != "launch" end
   # reset all file line
-  RunFileStack = []
-  push!(RunFileStack, EntryFile)
+  # RunFileStack = []
+  # push!(RunFileStack, EntryFile)
   for file in FileLine
     FileLine[file] = 1
   end
@@ -109,6 +117,12 @@ function run()
     cmd = take!(kRunTimeIn)
     notFinish = true
     if cmd == "continue"
+#=
+      current_file = RunFileStack[end]
+      asts = FileAst[current_file].asts
+      print(asts)
+      print("now you will continue")
+=#
       notFinish = continous()
     elseif cmd == "stepOver"
       notFinish = stepOver()
@@ -243,6 +257,7 @@ function continous(stopOnPopFile = false)
           continue
         else
           println(ast)
+          print("RunFileStack",RunFileStack)
         end
         Core.eval(Main, ast)
         updateLine()
@@ -298,10 +313,13 @@ function setBreakPoints(filepath, lineno)
     id += 1
     if !isequal(Nothing,ast)
       ast.args[2].args[ofs] = Expr(:call, Break)
+      ast_index = getAstIndex(filepath, realLineno)
+      FileAst[filepath].asts[ast_index] = ast
       eval(ast)
     end
   end
 
+  print("in setBreakPoints", FileAst[filepath].asts)    
   FileBp[filepath] = lineno
   return result
 end
@@ -401,7 +419,6 @@ function checkBreakPoint()
   current_line = FileLine[RunFileStack[end]]
   ast, ofs, realLineno = getRealPos(current_file, current_line)
   FileLine[current_file] = realLineno
-  print("in checkbp ", FileLine[current_file])
   if realLineno in FileBp[current_file]
     return true
   else

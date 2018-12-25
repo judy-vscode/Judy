@@ -44,7 +44,9 @@ function setEntryFile(file)
   global EntryFile
   EntryFile = abspath(file)
   push!(RunFileStack, EntryFile)
-  readSourceToAST(EntryFile)
+  if !haskey(FileAst, EntryFile)
+    readSourceToAST(EntryFile)
+  end
 end
 
 function readSourceToAST(file)

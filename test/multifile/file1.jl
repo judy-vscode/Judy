@@ -11,7 +11,7 @@ function f1(x, y)
   2x + y
 end
 
-k = f1(a, d)
+k = f2(f, d)
 
 println(k) # should be 33
 

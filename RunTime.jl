@@ -173,10 +173,12 @@ function stepOver()
   current_file = RunFileStack[end]
   asts = FileAst[current_file].asts
   ast_index = getAstIndex(current_file, FileLine[current_file])
+  #=
   if ast_index == lastindex(asts) + 1
     pop!(RunFileStack)
     return length(RunFileStack) != 0
   end
+  =#
   # run next line code
   if asts[ast_index] isa Nothing
     # if we find a blank line, we skip it
@@ -202,6 +204,13 @@ function stepOver()
       return false
     end
   end
+  if getAstIndex(current_file, FileLine[current_file]) > lastindex(asts)
+    pop!(RunFileStack)
+    if length(RunFileStack) == 0
+      put!(kRunTimeOut, "finish")
+      return false
+    end
+  end
   Break()
   return true
 end
@@ -220,8 +229,30 @@ function continous(stopOnPopFile = false)
   end
   current_file = RunFileStack[end]
   asts = FileAst[current_file].asts
-  ast_index = getAstIndex(current_file, FileLine[current_file])
 
+  ast_index = getAstIndex(current_file, FileLine[current_file])
+  while ast_index <= lastindex(asts)
+    ast = asts[ast_index]
+    try
+      if !tryRunNewFile(ast)
+        Core.eval(Main, ast)
+        updateLine()
+      else
+        return true
+      end
+    catch err
+      if err isa BreakPointStop
+        Break()
+        return true
+      else
+        global errors
+        errors = string(err)
+        println("runtime errors: $(errors)")
+      end
+    end
+    ast_index = getAstIndex(current_file, FileLine[current_file])
+  end
+  #=
   for ast in asts[ast_index: end]
     try
       if !tryRunNewFile(ast)
@@ -241,6 +272,7 @@ function continous(stopOnPopFile = false)
       end
     end
   end
+  =#
   # exit normally
   pop!(RunFileStack)
   if !stopOnPopFile
@@ -390,6 +422,13 @@ function updateLine()
     end
   end
   FileLine[current_file] += ofs
+  # continue update until we meet a not empty line
+  idx = getAstIndex(current_file, FileLine[current_file])
+  if idx <= lastindex(FileAst[current_file].asts)
+    if FileAst[current_file].asts[idx] isa Nothing
+      updateLine()
+    end
+  end
   if checkBreakPoint()
     throw(BreakPointStop())
   end

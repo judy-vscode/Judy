@@ -328,8 +328,10 @@ end
 #         1: line in block and valid
 #         2: line in block but not valid
 function trySetBpInBlock(filepath, line)
+  global FileAst
   blocks = FileAst[filepath].blocks
   result = 0
+  block_idx = 1
   for block in blocks
     if line <= block.startline
       # means it is not in a block
@@ -350,19 +352,22 @@ function trySetBpInBlock(filepath, line)
               result = 2
             else
               result = 1
-              code_line = "Connecter.EventHandler.RunTime.inBlockBreak(\"$(filepath)\", $(line))\n" * code_line
+              code_line = "Connecter.EventHandler.RunTime.inBlockBreak(\"$(filepath)\", $(line));" * code_line
             end
           catch err
             # some errors may cause when try to parse like `else`
             result = 2
           end
         end
-        modified_code = modified_code * "\n" * code_line
+        modified_code = modified_code * code_line * "\n"
+        # save modified raw code since we can have multiple bps in same block
+        FileAst[filepath].blocks[block_idx].raw_code = modified_code
         ofs += 1
       end
       ast = Meta.lower(Main, parseInputLine(modified_code))
       return ast, result
     end
+    block_idx += 1
   end
   ast = Meta.lower(Main, parseInputLine(""))
   return ast, result

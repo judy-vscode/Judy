@@ -6,7 +6,8 @@ function f1(x, y)
   return d
 end
 
-if f1(1, 1) < 10
+res = f1(1, 1)
+if res < 10
   println("Here1")
 else
   println("Here2")

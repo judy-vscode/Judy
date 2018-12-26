@@ -1,5 +1,5 @@
 00000065{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}
-00000138{"jsonrpc": "2.0", "id": 2, "method": "setBreakPoints", "params": {"path":"/home/v-zhilin/Judy/test/blocks/blocks1.jl", "lines":[18, 15]}}
+00000140{"jsonrpc": "2.0", "id": 2, "method": "setBreakPoints", "params": {"path":"/home/v-zhilin/Judy/test/blocks/blocks1.jl", "lines":[5, 9, 11]}}
 00000115{"jsonrpc": "2.0", "id": 4, "method": "launch", "params": {"program":"/home/v-zhilin/Judy/test/blocks/blocks1.jl"}}
 00000065{"jsonrpc": "2.0", "id": 5, "method": "stackTrace", "params": {}}
 00000073{"jsonrpc": "2.0", "id": 6, "method": "scopes", "params": {"frameId": 1}}
@@ -10,4 +10,4 @@
 00000090{"jsonrpc": "2.0", "id": 7, "method": "variables", "params": {"variablesReference": 1001}}
 
 ===together===
-00000065{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}00000138{"jsonrpc": "2.0", "id": 2, "method": "setBreakPoints", "params": {"path":"/home/v-zhilin/Judy/test/blocks/blocks1.jl", "lines":[18, 15]}}00000115{"jsonrpc": "2.0", "id": 4, "method": "launch", "params": {"program":"/home/v-zhilin/Judy/test/blocks/blocks1.jl"}}00000063{"jsonrpc": "2.0", "id": 5, "method": "continue", "params": {}}
+00000065{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}00000137{"jsonrpc": "2.0", "id": 2, "method": "setBreakPoints", "params": {"path":"/home/v-zhilin/Judy/test/blocks/blocks1.jl", "lines":[5, 15]}}00000115{"jsonrpc": "2.0", "id": 4, "method": "launch", "params": {"program":"/home/v-zhilin/Judy/test/blocks/blocks1.jl"}}00000063{"jsonrpc": "2.0", "id": 5, "method": "continue", "params": {}}

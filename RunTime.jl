@@ -30,6 +30,7 @@ FileAst = Dict()
 FileBp = Dict()
 # run file stack for `include`
 RunFileStack = []
+RunBlockStatus = []
 
 EntryFile = ""
 errors = ""
@@ -47,6 +48,13 @@ function setEntryFile(file)
   if !haskey(FileAst, EntryFile)
     readSourceToAST(EntryFile)
   end
+end
+
+# clear runblockstatus, this should be called
+# after collect info for a block
+function clearBlockStatus()
+  global RunBlockStatus
+  RunBlockStatus = []
 end
 
 function readSourceToAST(file)
@@ -155,47 +163,6 @@ function tryRunNewFile(ast, isStepOver = false)
   return isIncludeCall
 end
     
-
-# update info from this point
-function Break()
-  # debug info
-  global RunFileStack
-  global FileLine
-  global kRunTimeIn
-  global kRunTimeOut
-  current_line = FileLine[RunFileStack[end]]
-  println("hit breakpoint: $(RunFileStack[end]): $(current_line)")
-  # collect variable info
-  DebugInfo.collectVarInfo()
-  # collect stack info
-  DebugInfo.collectStackInfo()
-  put!(kRunTimeOut, "collected")
-  # wait until get "go on" info
-  sig = take!(kRunTimeIn)
-  if sig != "go on"
-    println("Error: Break() meets $(sig)")
-  end
-end
-
-function inBlockBreak(file, lineno)
-  global RunFileStack
-  global FileLine
-  global kRunTimeIn
-  global kRunTimeOut
-  println("hit breakpoint: $(file): $(lineno)")
-  # collect variable info
-  DebugInfo.collectVarInfo()
-  # collect stack info
-  DebugInfo.collectStackInfo()
-  put!(kRunTimeOut, "collected")
-  # wait until get "go on" info
-  sig = take!(kRunTimeIn)
-  if sig != "go on"
-    println("Error: Break() meets $(sig)")
-  end
-end
-
-
 # go to next line
 # if next line is an empty line, 
 # we ignore this line and go until it's a valid ast
@@ -287,6 +254,41 @@ function stepIn()
   throw(NotImplementedError("step has not been implemented"))
 end
 
+# update info from this point
+function Break()
+  # debug info
+  global RunFileStack
+  global FileLine
+  global kRunTimeIn
+  global kRunTimeOut
+  current_line = FileLine[RunFileStack[end]]
+  println("hit breakpoint: $(RunFileStack[end]): $(current_line)")
+  # collect variable info
+  DebugInfo.collectVarInfo()
+  # collect stack info
+  DebugInfo.collectStackInfo()
+  put!(kRunTimeOut, "collected")
+  # wait until get "go on" info
+  while take!(kRunTimeIn) != "go on" end
+end
+
+function inBlockBreak(file, lineno)
+  global RunFileStack
+  global FileLine
+  global kRunTimeIn
+  global kRunTimeOut
+  println("hit breakpoint: $(file): $(lineno)")
+  # collect variable info
+  DebugInfo.collectVarInfo()
+  # collect stack info
+  DebugInfo.collectStackInfo()
+  # set block running info
+  push!(RunBlockStatus, Dict(file => lineno))
+  put!(kRunTimeOut, "collected")
+  # wait until get "go on" info
+  while take!(kRunTimeIn) != "go on" end
+end
+
 # set breakpoint
 # if breakpoint is on blank line,
 # it will not be set
@@ -348,7 +350,7 @@ function trySetBpInBlock(filepath, line)
               result = 2
             else
               result = 1
-              code_line = "EventHandler.RunTime.inBlockBreak(\"$(filepath)\", $(line));" * code_line
+              code_line = "Connecter.EventHandler.RunTime.inBlockBreak(\"$(filepath)\", $(line))\n" * code_line
             end
           catch err
             # some errors may cause when try to parse like `else`
@@ -358,7 +360,6 @@ function trySetBpInBlock(filepath, line)
         modified_code = modified_code * "\n" * code_line
         ofs += 1
       end
-      println("modified code: $(modified_code)")
       ast = Meta.lower(Main, parseInputLine(modified_code))
       return ast, result
     end

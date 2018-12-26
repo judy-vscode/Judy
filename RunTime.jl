@@ -99,10 +99,10 @@ function run()
   global EntryFile
   global kRunTimeOut
   # wait until 'launch'
-
+  
+  
   current_file = RunFileStack[end]
   asts = FileAst[current_file].asts
-
   while take!(kRunTimeIn) != "launch" end
   # reset all file line
   # RunFileStack = []
@@ -134,8 +134,10 @@ function tryRunNewFile(ast, isStepOver = false)
   local isIncludeCall = false
   local filename = ""
   try
-    if ast.args[1].code[1].args[1] == (:include)
-      filename = abspath(joinpath(RunFileStack[end], "../" * ast.args[1].code[1].args[2]))
+    if ast.args[1] == Symbol("include")
+      println(joinpath(RunFileStack[end], "../" * ast.args[2]))
+      filename = abspath(joinpath(RunFileStack[end], "../" * ast.args[2]))
+      print(filename)
       isIncludeCall = true
     end
   catch err
@@ -161,15 +163,24 @@ end
     
 
 # update info from this point
-function Break()
+function Break(filepath = "", current_line = Nothing)
   # debug info
   global RunFileStack
   global FileLine
 
   global kRunTimeIn
   global kRunTimeOut
-  current_line = FileLine[RunFileStack[end]]
-  println("hit breakpoint: $(RunFileStack[end]): $(current_line)")
+  isEnterNewFile = false
+  if filepath == ""
+    filepath = RunFileStack[end]
+    current_line = FileLine[filepath]
+  else
+    if filepath != RunFileStack[end]
+      push!(RunFileStack, filepath)
+      isEnterNewFile = true
+    end
+  end
+  println("hit breakpoint: $(filepath): $(current_line)")
   # collect variable info
   DebugInfo.collectVarInfo()
   # collect stack info
@@ -178,6 +189,10 @@ function Break()
   # wait until get "go on" info
   # sig = take!(kRunTimeIn)
   while take!(kRunTimeIn) != "go on" end
+  if isEnterNewFile
+    pop!(RunFileStack)
+  end
+  println("Run1",RunFileStack)
     # println("Error: Break() meets $(sig)")
 end
 
@@ -241,22 +256,19 @@ function continous(stopOnPopFile = false)
   asts = FileAst[current_file].asts
   ast_index = getAstIndex(current_file, FileLine[current_file])
 
-
   for ast in asts[ast_index: end]
     try
-      if !tryRunNewFile(ast)
-        if ast isa Nothing
-          continue
-        end
-        if FileLine[current_file] == 1
-          if checkBreakPoint()
-            throw(BreakPointStop())
-          end
-        end
-        Core.eval(Main, ast)
-        updateLine()
+      show(ast)
+      if ast isa Nothing
+        continue
       else
-        return true
+        if !tryRunNewFile(ast)
+          Core.eval(Main, ast)
+          println("test2")
+          updateLine()
+        else
+          println("You find a breakpoint in include files! Congrats!!")
+        end
       end
     catch err
       if err isa BreakPointStop
@@ -308,7 +320,7 @@ function setBreakPoints(filepath, lineno)
     if !isequal(Nothing,ofs)
       ast_index = getAstIndex(filepath, realLineno)
       ast = asts[ast_index]
-      ast.args[2].args[ofs] = Expr(:call, Break)
+      ast.args[2].args[ofs] = Expr(:call, Break, filepath, bpline)
       # FileAst[filepath].asts[ast_index] = ast
     end
   end
@@ -411,7 +423,7 @@ function checkBreakPoint()
   current_line = FileLine[RunFileStack[end]]
   ofs, realLineno = getRealPos(current_file, current_line)
   FileLine[current_file] = realLineno
-  if realLineno in FileBp[current_file]
+  if current_file in keys(FileBp) && realLineno in FileBp[current_file]
     return true
   else
     return false

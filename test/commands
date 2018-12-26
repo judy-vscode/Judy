@@ -2,7 +2,7 @@
 
 00000115{"jsonrpc": "2.0", "id": 3, "method": "launch", "params": {"program":"test/test1.jl", "stopOnEntry":"stopOnEntry"}}
 
-00000086{"jsonrpc": "2.0", "id": 3, "method": "launch", "params": {"program":"test/test1.jl"}}
+00000096{"jsonrpc": "2.0", "id": 3, "method": "launch", "params": {"program":"test/multifile/file1.jl"}}
 
 00000099{"jsonrpc": "2.0", "id": 1, "method": "setBreakPoints", "params": {"path":"whatever", "lines":[4]}}
 
@@ -27,8 +27,8 @@ julia judy.jl ./test/breakpoint.jl
 test scripts for test1.jl
 
 00000065{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}
-00000106{"jsonrpc": "2.0", "id": 2, "method": "setBreakPoints", "params": {"path":"test/test2.jl", "lines":[2,4]}}
-00000115{"jsonrpc": "2.0", "id": 3, "method": "launch", "params": {"program":"test/test1.jl", "stopOnEntry":"stopOnEntry"}}
+00000114{"jsonrpc": "2.0", "id": 2, "method": "setBreakPoints", "params": {"path":"test/multifile/file2.jl", "lines":[3]}}
+00000115{"jsonrpc": "2.0", "id": 3, "method": "launch", "params": {"program":"test/multifile/file1.jl", "stopOnEntry":"stopOnEntry"}}
 00000063{"jsonrpc": "2.0", "id": 4, "method": "continue", "params": {}}
 00000065{"jsonrpc": "2.0", "id": 5, "method": "stackTrace", "params": {}}
 00000073{"jsonrpc": "2.0", "id": 6, "method": "scopes", "params": {"frameId": 1}}

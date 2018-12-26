@@ -122,7 +122,7 @@ function collectVarInfo()
     if length(fieldnames(vtype)) != 0
       decomposeVar(vtype, var, ref)
     end
-    #println("$(var) collects successfully")
+    # println("$(var) collects successfully")
   end
 end
 

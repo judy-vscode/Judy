@@ -252,27 +252,6 @@ function continous(stopOnPopFile = false)
     end
     ast_index = getAstIndex(current_file, FileLine[current_file])
   end
-  #=
-  for ast in asts[ast_index: end]
-    try
-      if !tryRunNewFile(ast)
-        Core.eval(Main, ast)
-        updateLine()
-      else
-        return true
-      end
-    catch err
-      if err isa BreakPointStop
-        Break()
-        return true
-      else
-        global errors
-        errors = string(err)
-        println("runtime errors: $(errors)")
-      end
-    end
-  end
-  =#
   # exit normally
   pop!(RunFileStack)
   if !stopOnPopFile

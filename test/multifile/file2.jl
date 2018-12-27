@@ -1,6 +1,8 @@
 
 function f2(x, y)
-  3x + y
+  m = 3 * x
+  n = 2 * y
+  return m + n
 end
 
 s = 3

@@ -82,6 +82,7 @@ function readSourceToAST(file)
         if block_start != 0
           # add block line postion
           block_end = line
+          s = replace(s, "\r" => "")
           blockinfo = BlockInfo(ex.head, block_start, block_end, s)
           push!(blocks, blockinfo)
           block_start = 0
@@ -337,6 +338,8 @@ end
 function trySetBpInBlock(filepath, line)
   global FileAst
   blocks = FileAst[filepath].blocks
+  # for windows dir
+  input_path = replace(filepath, "\\" => "\\\\")
   result = 0
   block_idx = 1
   for block in blocks
@@ -359,14 +362,14 @@ function trySetBpInBlock(filepath, line)
               result = 2
             else
               result = 1
-              code_line = "Connecter.EventHandler.RunTime.inBlockBreak(\"$(filepath)\", $(line));" * code_line
+              code_line = "Connecter.EventHandler.RunTime.inBlockBreak(\"$(input_path)\", $(line));" * code_line
             end
           catch err
             # some errors may cause when try to parse like `else`
             result = 2
           end
         end
-        modified_code = modified_code * code_line * "\n"
+        modified_code = modified_code * code_line * " \n"
         # save modified raw code since we can have multiple bps in same block
         FileAst[filepath].blocks[block_idx].raw_code = modified_code
         ofs += 1

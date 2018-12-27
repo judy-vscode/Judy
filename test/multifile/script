@@ -1,7 +1,7 @@
 00000065{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}
-00000150{"jsonrpc": "2.0", "id": 2, "method": "setBreakPoints", "params": {"path":"/Users/zhiqilin/Project/Judy/test/multifile/file1.jl", "lines":[4, 8, 16]}}
-00000146{"jsonrpc": "2.0", "id": 3, "method": "setBreakPoints", "params": {"path":"/Users/zhiqilin/Project/Judy/test/multifile/file2.jl", "lines":[6, 9]}}
-00000154{"jsonrpc": "2.0", "id": 4, "method": "launch", "params": {"program":"/Users/zhiqilin/Project/Judy/test/multifile/file1.jl", "stopOnEntry":"stopOnEntry"}}
+00000169{"jsonrpc": "2.0", "id": 2, "method": "setBreakPoints", "params": {"path":"C:\\Users\\v-zhilin\\Desktop\\Projects\\judy\\test\\multifile\\file1.jl", "lines":[2, 8, 12]}}
+00000165{"jsonrpc": "2.0", "id": 3, "method": "setBreakPoints", "params": {"path":"C:\\Users\\v-zhilin\\Desktop\\Projects\\judy\\test\\multifile\\file2.jl", "lines":[3, 9]}}
+00000144{"jsonrpc": "2.0", "id": 4, "method": "launch", "params": {"program":"C:\\Users\\v-zhilin\\Desktop\\Projects\\judy\\test\\multifile\\file2.jl"}}
 00000063{"jsonrpc": "2.0", "id": 5, "method": "continue", "params": {}}
 00000065{"jsonrpc": "2.0", "id": 5, "method": "stackTrace", "params": {}}
 00000073{"jsonrpc": "2.0", "id": 6, "method": "scopes", "params": {"frameId": 1}}

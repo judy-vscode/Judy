@@ -1,0 +1,24 @@
+00000065{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}
+00000196{"jsonrpc": "2.0", "id": 2, "method": "setBreakPoints", "params": {"path":"C:\\Users\\v-zhilin\\Desktop\\Projects\\judy\\test\\general\\general1.jl", "lines":[20, 22, 29, 32, 39, 41, 46, 50, 55]}}
+00000170{"jsonrpc": "2.0", "id": 2, "method": "setBreakPoints", "params": {"path":"C:\\Users\\v-zhilin\\Desktop\\Projects\\judy\\test\\general\\general2.jl", "lines":[3, 8, 11]}}
+00000145{"jsonrpc": "2.0", "id": 4, "method": "launch", "params": {"program":"C:\\Users\\v-zhilin\\Desktop\\Projects\\judy\\test\\general\\general1.jl"}}
+
+00000063{"jsonrpc": "2.0", "id": 5, "method": "continue", "params": {}}
+00000065{"jsonrpc": "2.0", "id": 5, "method": "stackTrace", "params": {}}
+00000073{"jsonrpc": "2.0", "id": 6, "method": "scopes", "params": {"frameId": 1}}
+00000090{"jsonrpc": "2.0", "id": 7, "method": "variables", "params": {"variablesReference": 1001}}
+
+00000060{"jsonrpc": "2.0", "id": 9, "method": "next", "params": {}}
+00000065{"jsonrpc": "2.0", "id": 5, "method": "stackTrace", "params": {}}
+00000073{"jsonrpc": "2.0", "id": 6, "method": "scopes", "params": {"frameId": 1}}
+00000090{"jsonrpc": "2.0", "id": 7, "method": "variables", "params": {"variablesReference": 1001}}
+
+
+===just after launch===
+00000065{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}00000196{"jsonrpc": "2.0", "id": 2, "method": "setBreakPoints", "params": {"path":"C:\\Users\\v-zhilin\\Desktop\\Projects\\judy\\test\\general\\general1.jl", "lines":[20, 22, 29, 32, 39, 41, 46, 50, 55]}}00000170{"jsonrpc": "2.0", "id": 2, "method": "setBreakPoints", "params": {"path":"C:\\Users\\v-zhilin\\Desktop\\Projects\\judy\\test\\general\\general2.jl", "lines":[3, 8, 11]}}00000145{"jsonrpc": "2.0", "id": 4, "method": "launch", "params": {"program":"C:\\Users\\v-zhilin\\Desktop\\Projects\\judy\\test\\general\\general1.jl"}}
+
+===one continue===
+0000063{"jsonrpc": "2.0", "id": 5, "method": "continue", "params": {}}00000065{"jsonrpc": "2.0", "id": 5, "method": "stackTrace", "params": {}}00000073{"jsonrpc": "2.0", "id": 6, "method": "scopes", "params": {"frameId": 1}}00000090{"jsonrpc": "2.0", "id": 7, "method": "variables", "params": {"variablesReference": 1001}}
+
+===one next===
+0000059{"jsonrpc": "2.0", "id": 9, "method": "next", "params": {}}00000065{"jsonrpc": "2.0", "id": 5, "method": "stackTrace", "params": {}}00000073{"jsonrpc": "2.0", "id": 6, "method": "scopes", "params": {"frameId": 1}}00000090{"jsonrpc": "2.0", "id": 7, "method": "variables", "params": {"variablesReference": 1001}}

@@ -39,7 +39,6 @@ function handleEvent(method, params)
     put!(RunTime.kRunTimeIn, "go on")
     put!(RunTime.kRunTimeIn, "continue")
     finish_sig = take!(RunTime.kRunTimeOut)
-    println("EventHandler: recv $(finish_sig)")
     event, event_method = EventHandler.getStatus("breakpoint")
     result = Dict("allThreadsContinued" => true)
 
@@ -67,14 +66,25 @@ function handleEvent(method, params)
   return result, event, event_method
 end
 
-
-
 function init(file)
   RunTime.setEntryFile(file)
 end
 
 function setBreakPoints(filepath, lineno)
-  return RunTime.setBreakPoints(filepath, lineno)
+  res = RunTime.setBreakPoints(filepath, lineno)
+  result = []
+  id = 1
+  for idx in collect(1:1:length(lineno))
+    if res[idx]
+      push!(result, Dict("verified" => true,
+                         "line" => lineno[idx],
+                         "id" => id))
+      id += 1
+    else
+      push!(result, Dict("verified" => false))
+    end
+  end
+  return result
 end
 
 # get stack trace for the current collection
@@ -83,15 +93,22 @@ function getStackTrace()
   info = RunTime.DebugInfo.getStackInfo()
   results = []
   path = ""
-  if length(RunTime.RunFileStack) != 0
+  line = 1
+  if length(RunTime.RunBlockStatus) != 0
+    path = collect(keys(RunTime.RunBlockStatus[end]))[1]
+    line = RunTime.RunBlockStatus[end][path]
+    # clear status since it will be set next break time
+    RunTime.clearBlockStatus()
+  elseif length(RunTime.RunFileStack) != 0
     path = RunTime.RunFileStack[end]
+    line = RunTime.FileLine[path]
   else
     return info
   end
   push!(results, Dict("frameId" => 0,
                       "name" => "top",
                       "path" => path,
-                      "line" => RunTime.FileLine[path]))
+                      "line" => line))
   for frame in info
     push!(results, frame)
   end
@@ -119,13 +136,21 @@ function getStatus(reason)
     return Dict("exitCode" => 0), "exited"
   end
 
-  current_file = RunTime.RunFileStack[end]
-  line = RunTime.FileLine[current_file]
+  path = ""
+  line = 1
+  if length(RunTime.RunBlockStatus) != 0
+    path = collect(keys(RunTime.RunBlockStatus[end]))[1]
+    line = RunTime.RunBlockStatus[end][path]
+  elseif length(RunTime.RunFileStack) != 0
+    path = RunTime.RunFileStack[end]
+    line = RunTime.FileLine[path]
+  end
+
   description = ""
   if reason == "step"
     description = "step over (ignore breakpoints)"
   elseif reason == "breakpoint"
-    description = "hit breakpoint at: " * "$(line)"
+    description = "hit breakpoint: $(path): $(line)"
   end
   result = Dict("reason" => reason,
                 "description" => description,

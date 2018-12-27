@@ -1,0 +1,16 @@
+00000065{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}
+00000168{"jsonrpc": "2.0", "id": 2, "method": "setBreakPoints", "params": {"path":"/home/v-zhilin/Judy/test/blocks/blocks1.jl", "lines":[5, 7, 10, 14, 19, 22, 24, 26, 28, 33]}}
+00000115{"jsonrpc": "2.0", "id": 4, "method": "launch", "params": {"program":"/home/v-zhilin/Judy/test/blocks/blocks1.jl"}}
+00000065{"jsonrpc": "2.0", "id": 5, "method": "stackTrace", "params": {}}
+00000073{"jsonrpc": "2.0", "id": 6, "method": "scopes", "params": {"frameId": 1}}
+00000090{"jsonrpc": "2.0", "id": 7, "method": "variables", "params": {"variablesReference": 1001}}
+00000063{"jsonrpc": "2.0", "id": 5, "method": "continue", "params": {}}
+00000065{"jsonrpc": "2.0", "id": 5, "method": "stackTrace", "params": {}}
+00000073{"jsonrpc": "2.0", "id": 6, "method": "scopes", "params": {"frameId": 1}}
+00000090{"jsonrpc": "2.0", "id": 7, "method": "variables", "params": {"variablesReference": 1001}}
+
+===together===
+00000065{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}00000137{"jsonrpc": "2.0", "id": 2, "method": "setBreakPoints", "params": {"path":"/home/v-zhilin/Judy/test/blocks/blocks1.jl", "lines":[5, 15]}}00000115{"jsonrpc": "2.0", "id": 4, "method": "launch", "params": {"program":"/home/v-zhilin/Judy/test/blocks/blocks1.jl"}}00000063{"jsonrpc": "2.0", "id": 5, "method": "continue", "params": {}}
+
+00000196{"jsonrpc": "2.0", "id": 2, "method": "setBreakPoints", "params": {"path":"C:\\Users\\v-zhilin\\Desktop\\Projects\\judy\\test\\blocks\\blocks1.jl", "lines":[5, 7, 10, 14, 19, 22, 24, 26, 28, 33]}}
+00000143{"jsonrpc": "2.0", "id": 4, "method": "launch", "params": {"program":"C:\\Users\\v-zhilin\\Desktop\\Projects\\judy\\test\\blocks\\blocks1.jl"}}

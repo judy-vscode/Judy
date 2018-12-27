@@ -1,0 +1,5 @@
+00000065{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}
+00000149{"jsonrpc": "2.0", "id": 2, "method": "setBreakPoints", "params": {"path":"/Users/zhiqilin/Project/Judy/test/base/base1.jl", "lines":[2, 5, 11, 13]}}
+00000120{"jsonrpc": "2.0", "id": 4, "method": "launch", "params": {"program":"/Users/zhiqilin/Project/Judy/test/base/base1.jl"}}
+00000063{"jsonrpc": "2.0", "id": 5, "method": "continue", "params": {}}
+00000059{"jsonrpc": "2.0", "id": 1, "method": "next", "params": {}}

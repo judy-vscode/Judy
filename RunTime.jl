@@ -30,6 +30,7 @@ FileAst = Dict()
 FileBp = Dict()
 # run file stack for `include`
 RunFileStack = []
+RunBlockStatus = []
 
 EntryFile = ""
 errors = ""
@@ -44,9 +45,16 @@ function setEntryFile(file)
   global EntryFile
   EntryFile = abspath(file)
   push!(RunFileStack, EntryFile)
-  if !(EntryFile in keys(FileAst))
+  if !haskey(FileAst, EntryFile)
     readSourceToAST(EntryFile)
   end
+end
+
+# clear runblockstatus, this should be called
+# after collect info for a block
+function clearBlockStatus()
+  global RunBlockStatus
+  RunBlockStatus = []
 end
 
 function readSourceToAST(file)
@@ -74,12 +82,13 @@ function readSourceToAST(file)
         if block_start != 0
           # add block line postion
           block_end = line
+          s = replace(s, "\r" => "")
           blockinfo = BlockInfo(ex.head, block_start, block_end, s)
           push!(blocks, blockinfo)
           block_start = 0
         end
-        # ast = Meta.lower(Main, ex)
-        push!(asts, ex)
+        ast = Meta.lower(Main, ex)
+        push!(asts, ast)
         s = ""
       end
     end
@@ -99,17 +108,12 @@ function run()
   global EntryFile
   global kRunTimeOut
   # wait until 'launch'
-  
-  
-  current_file = RunFileStack[end]
-  asts = FileAst[current_file].asts
   while take!(kRunTimeIn) != "launch" end
   # reset all file line
-  # RunFileStack = []
-  # push!(RunFileStack, EntryFile)
-  for file in FileLine
-    FileLine[file] = 1
-  end
+  RunFileStack = []
+  push!(RunFileStack, EntryFile)
+  cd(abspath(joinpath(EntryFile, "../")))
+  FileLine = Dict(EntryFile => 1)
   # start running program
   while true
     cmd = take!(kRunTimeIn)
@@ -134,10 +138,8 @@ function tryRunNewFile(ast, isStepOver = false)
   local isIncludeCall = false
   local filename = ""
   try
-    if ast.args[1] == Symbol("include")
-      println(joinpath(RunFileStack[end], "../" * ast.args[2]))
-      filename = abspath(joinpath(RunFileStack[end], "../" * ast.args[2]))
-      print(filename)
+    if ast.args[1].code[1].args[1] == (:include)
+      filename = abspath(joinpath(RunFileStack[end], "../" * ast.args[1].code[1].args[2]))
       isIncludeCall = true
     end
   catch err
@@ -146,57 +148,18 @@ function tryRunNewFile(ast, isStepOver = false)
   end
   if isIncludeCall
     if !haskey(FileAst, filename)
-      # in this case: no breakpoint has been set to this file
-      # we just use eval to run include call
-      return false
-    else
-      # skip include call (we run it manually)
-      println("detect include file: $(filename)")
-      updateLine()
-      push!(RunFileStack, filename)
-      FileLine[filename] = 1
-      continous(isStepOver)
+      readSourceToAST(filename)
     end
+    # skip include call (we run it manually)
+    println("detect include file: $(filename)")
+    updateLine()
+    push!(RunFileStack, filename)
+    FileLine[filename] = 1
+    continous(isStepOver)
   end
   return isIncludeCall
 end
     
-
-# update info from this point
-function Break(filepath = "", current_line = Nothing)
-  # debug info
-  global RunFileStack
-  global FileLine
-
-  global kRunTimeIn
-  global kRunTimeOut
-  isEnterNewFile = false
-  if filepath == ""
-    filepath = RunFileStack[end]
-    current_line = FileLine[filepath]
-  else
-    if filepath != RunFileStack[end]
-      push!(RunFileStack, filepath)
-      isEnterNewFile = true
-    end
-  end
-  println("hit breakpoint: $(filepath): $(current_line)")
-  # collect variable info
-  DebugInfo.collectVarInfo()
-  # collect stack info
-  DebugInfo.collectStackInfo()
-  put!(kRunTimeOut, "collected")
-  # wait until get "go on" info
-  # sig = take!(kRunTimeIn)
-  while take!(kRunTimeIn) != "go on" end
-  if isEnterNewFile
-    pop!(RunFileStack)
-  end
-  println("Run1",RunFileStack)
-    # println("Error: Break() meets $(sig)")
-end
-
-
 # go to next line
 # if next line is an empty line, 
 # we ignore this line and go until it's a valid ast
@@ -207,10 +170,6 @@ function stepOver()
   current_file = RunFileStack[end]
   asts = FileAst[current_file].asts
   ast_index = getAstIndex(current_file, FileLine[current_file])
-  if ast_index == lastindex(asts) + 1
-    pop!(RunFileStack)
-    return length(RunFileStack) != 0
-  end
   # run next line code
   if asts[ast_index] isa Nothing
     # if we find a blank line, we skip it
@@ -236,6 +195,13 @@ function stepOver()
       return false
     end
   end
+  if getAstIndex(current_file, FileLine[current_file]) > lastindex(asts)
+    pop!(RunFileStack)
+    if length(RunFileStack) == 0
+      put!(kRunTimeOut, "finish")
+      return false
+    end
+  end
   Break()
   return true
 end
@@ -254,21 +220,16 @@ function continous(stopOnPopFile = false)
   end
   current_file = RunFileStack[end]
   asts = FileAst[current_file].asts
-  ast_index = getAstIndex(current_file, FileLine[current_file])
 
-  for ast in asts[ast_index: end]
+  ast_index = getAstIndex(current_file, FileLine[current_file])
+  while ast_index <= lastindex(asts)
+    ast = asts[ast_index]
     try
-      show(ast)
-      if ast isa Nothing
-        continue
+      if !tryRunNewFile(ast)
+        Core.eval(Main, ast)
+        updateLine()
       else
-        if !tryRunNewFile(ast)
-          Core.eval(Main, ast)
-          println("test2")
-          updateLine()
-        else
-          println("You find a breakpoint in include files! Congrats!!")
-        end
+        return true
       end
     catch err
       if err isa BreakPointStop
@@ -276,11 +237,13 @@ function continous(stopOnPopFile = false)
         return true
       else
         global errors
-        errors = string(err)
-        println("runtime errors: $(errors)")
-        break
+        errors = "runtime errors: $(current_file): $(FileLine[current_file]): $(err)"
+        println(errors)
+        put!(kRunTimeOut, "error")
+        return
       end
     end
+    ast_index = getAstIndex(current_file, FileLine[current_file])
   end
   # exit normally
   pop!(RunFileStack)
@@ -295,10 +258,44 @@ function stepIn()
   throw(NotImplementedError("step has not been implemented"))
 end
 
+# update info from this point
+function Break()
+  # debug info
+  global RunFileStack
+  global FileLine
+  global kRunTimeIn
+  global kRunTimeOut
+  current_line = FileLine[RunFileStack[end]]
+  println("hit breakpoint: $(RunFileStack[end]): $(current_line)")
+  # collect variable info
+  DebugInfo.collectVarInfo()
+  # collect stack info
+  DebugInfo.collectStackInfo()
+  put!(kRunTimeOut, "collected")
+  # wait until get "go on" info
+  while take!(kRunTimeIn) != "go on" end
+end
+
+function inBlockBreak(file, lineno)
+  global RunFileStack
+  global FileLine
+  global kRunTimeIn
+  global kRunTimeOut
+  println("hit breakpoint: $(file): $(lineno)")
+  # collect variable info
+  DebugInfo.collectVarInfo()
+  # collect stack info
+  DebugInfo.collectStackInfo()
+  # set block running info
+  push!(RunBlockStatus, Dict(file => lineno))
+  put!(kRunTimeOut, "collected")
+  # wait until get "go on" info
+  while take!(kRunTimeIn) != "go on" end
+end
+
 # set breakpoint
 # if breakpoint is on blank line,
 # it will not be set
-
 function setBreakPoints(filepath, lineno)
   global FileBp
   global FileAst
@@ -307,87 +304,80 @@ function setBreakPoints(filepath, lineno)
   readSourceToAST(filepath)
   FileBp[filepath] = []
   asts = FileAst[filepath].asts
-  id = 1
-
-  for bpline in lineno
-    ofs, realLineno = getRealPos(filepath, bpline)
-    index = findfirst(isequal(bpline), lineno)
-    lineno[index] = realLineno
-    push!(result, Dict("verified" => true,
-    "line" => realLineno,  #verify first non-blank line
-    "id" => id))
-    id += 1
-    if !isequal(Nothing,ofs)
-      ast_index = getAstIndex(filepath, realLineno)
-      ast = asts[ast_index]
-      ast.args[2].args[ofs] = Expr(:call, Break, filepath, bpline)
-      # FileAst[filepath].asts[ast_index] = ast
+  blocks = FileAst[filepath].blocks
+  for line in lineno
+    ast_idx = getAstIndex(filepath, line)
+    # outside empty line
+    if asts[ast_idx] isa Nothing
+      push!(result, false)
+    else
+      ast, res = trySetBpInBlock(filepath, line)
+      if res == 0 || res == 1
+        push!(FileBp[filepath], line)
+        push!(result, true)
+        # set modified ast to filepath
+        if res == 1
+          FileAst[filepath].asts[ast_idx] = ast
+        end
+      elseif res == 2
+        push!(result, false)
+      end
     end
   end
-  # println("ast",FileAst[filepath].asts)
-  FileBp[filepath] = lineno
   return result
 end
 
-function getRealPos(filepath, bpline)
+# check and set breakpoint inside blocks
+# return: 0: line not in block
+#         1: line in block and valid
+#         2: line in block but not valid
+function trySetBpInBlock(filepath, line)
   global FileAst
-  global RunFileStack
-  asts = FileAst[filepath].asts
   blocks = FileAst[filepath].blocks
-    #check if exists bp in block
-    #The key to insert the point is when we revise a copy of function's ast,
-    #and then eval the ast, we update the definition of the function
-    #Another thing is we should make the mapping from original code pos to insert offset
-    #considering blank line  
-  for blockinfo in blocks
-    if blockinfo.startline < bpline <= blockinfo.endline
-      ast = parseInputLine(blockinfo.raw_code)
-      codelines = split(blockinfo.raw_code,"\n")
-      # for codeline in codelines:
-      #   if isempty(strip(codeline))
-      nonBlankLine = 0
-      firstNonBlankLine = 0
-      for i in range(1, stop = blockinfo.endline - blockinfo.startline + 1)
-        if isempty(strip(codelines[i]))
-          continue
-        end
-        if i >= bpline - blockinfo.startline + 1
-          firstNonBlankLine = i
-          break
-        end
-        nonBlankLine += 1  #nonBlankLine before bp line
-      end
-      push!(ast.args[2].args, Nothing)
-      if nonBlankLine == 0
-        ofs = 1
-      elseif bpline == blockinfo.endline
-        firstNonBlankLine = blockinfo.endline - blockinfo.startline + 1
-        ofs = length(ast.args[2].args)
-      else
-        ofs = 2 * nonBlankLine - 1
-      end
-      realLineno = firstNonBlankLine + blockinfo.startline - 1
-      return ofs, realLineno
-    #not in a block
-    end
-  end
-
-  firstNonBlankLine = bpline
-  while true
-    ast_index = getAstIndex(filepath, firstNonBlankLine)
-    if ast_index > length(asts)
-      firstNonBlankLine = bpline
+  # for windows dir
+  input_path = replace(filepath, "\\" => "\\\\")
+  result = 0
+  block_idx = 1
+  for block in blocks
+    if line <= block.startline
+      # means it is not in a block
+      # setting bp on the first line of block
+      # will only be stopped once
       break
     end
-    if asts[ast_index] isa Nothing
-      firstNonBlankLine += 1
-    else
-      break
+    if block.startline < line <= block.endline
+      # means it is in a block
+      modified_code = ""
+      ofs = 0
+      for code_line in split(block.raw_code, "\n")
+        if line == block.startline + ofs
+          # means we detect the position to set bp
+          try
+            if Meta.parse(code_line) isa Nothing
+              # means bp are set at an empty line, which is not allowed
+              result = 2
+            else
+              result = 1
+              code_line = "Connecter.EventHandler.RunTime.inBlockBreak(\"$(input_path)\", $(line));" * code_line
+            end
+          catch err
+            # some errors may cause when try to parse like `else`
+            result = 2
+          end
+        end
+        modified_code = modified_code * code_line * " \n"
+        # save modified raw code since we can have multiple bps in same block
+        FileAst[filepath].blocks[block_idx].raw_code = modified_code
+        ofs += 1
+      end
+      ast = Meta.lower(Main, parseInputLine(modified_code))
+      return ast, result
     end
+    block_idx += 1
   end
-  return Nothing, firstNonBlankLine
-end   
-
+  ast = Meta.lower(Main, parseInputLine(""))
+  return ast, result
+end
 
 # update line for run/next/continous call
 function updateLine()
@@ -396,10 +386,7 @@ function updateLine()
   global FileAst
   current_file = RunFileStack[end]
   blocks = FileAst[current_file].blocks
-  while FileAst[current_file].asts[getAstIndex(current_file, FileLine[current_file])] isa Nothing
-    FileLine[current_file] += 1
-  end
-  ofs = 1     #------------to be modified
+  ofs = 1
   for blockinfo in blocks
     if FileLine[current_file] == blockinfo.startline
       ofs += blockinfo.endline - blockinfo.startline + 1
@@ -409,6 +396,13 @@ function updateLine()
     end
   end
   FileLine[current_file] += ofs
+  # continue update until we meet a not empty line
+  idx = getAstIndex(current_file, FileLine[current_file])
+  if idx <= lastindex(FileAst[current_file].asts)
+    if FileAst[current_file].asts[idx] isa Nothing
+      updateLine()
+    end
+  end
   if checkBreakPoint()
     throw(BreakPointStop())
   end
@@ -421,9 +415,10 @@ function checkBreakPoint()
   global FileBp
   current_file = RunFileStack[end]
   current_line = FileLine[RunFileStack[end]]
-  ofs, realLineno = getRealPos(current_file, current_line)
-  FileLine[current_file] = realLineno
-  if current_file in keys(FileBp) && realLineno in FileBp[current_file]
+  if !haskey(FileBp, current_file)
+    return false
+  end
+  if current_line in FileBp[current_file]
     return true
   else
     return false

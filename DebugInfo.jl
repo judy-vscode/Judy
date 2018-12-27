@@ -45,7 +45,6 @@ Vars = Tree()
 stacks = []
 
 
-
 # should be called when hit a breakpoint
 # collect stack info, debugger function will be
 # deleted at getStackInfo()
@@ -70,7 +69,7 @@ function getStackInfo()
   results = []
   cnt = 0
   for frame in stacks
-    debugger_file = r"(EventHandler\.jl)|(judy\.jl)|(MsgHandler\.jl)|(DebugInfo.jl)|(RunTime.jl)"
+    debugger_file = r"(EventHandler\.jl)|(judy\.jl)|(MsgHandler\.jl)|(DebugInfo\.jl)|(RunTime\.jl)"
     m = match(debugger_file, frame.filepath)
     if !isa(m, RegexMatch)
       cnt += 1
@@ -83,18 +82,6 @@ function getStackInfo()
   return results
 end
 
-#=
-function evalAst(ast)
-  global stacks
-  global RunTime.RunFileStack
-  global RunTime.FileLine
-  if ast.head == Symbol("call")
-    current_file = RunTime.RunFileStack[end]
-    current_stack = stackInfo(string(ast.args[1]), current_file, RunTime.FileLine[current_file])
-    push!(stacks,current_stack)
-  end
-end
-=#
 
 # collect variable info
 # currently we only collect Main module
@@ -122,7 +109,6 @@ function collectVarInfo()
     if length(fieldnames(vtype)) != 0
       decomposeVar(vtype, var, ref)
     end
-    # println("$(var) collects successfully")
   end
 end
 

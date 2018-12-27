@@ -21,4 +21,4 @@
 0000063{"jsonrpc": "2.0", "id": 5, "method": "continue", "params": {}}00000065{"jsonrpc": "2.0", "id": 5, "method": "stackTrace", "params": {}}00000073{"jsonrpc": "2.0", "id": 6, "method": "scopes", "params": {"frameId": 1}}00000090{"jsonrpc": "2.0", "id": 7, "method": "variables", "params": {"variablesReference": 1001}}
 
 ===one next===
-0000060{"jsonrpc": "2.0", "id": 9, "method": "next", "params": {}}00000065{"jsonrpc": "2.0", "id": 5, "method": "stackTrace", "params": {}}00000073{"jsonrpc": "2.0", "id": 6, "method": "scopes", "params": {"frameId": 1}}00000090{"jsonrpc": "2.0", "id": 7, "method": "variables", "params": {"variablesReference": 1001}}
+0000059{"jsonrpc": "2.0", "id": 9, "method": "next", "params": {}}00000065{"jsonrpc": "2.0", "id": 5, "method": "stackTrace", "params": {}}00000073{"jsonrpc": "2.0", "id": 6, "method": "scopes", "params": {"frameId": 1}}00000090{"jsonrpc": "2.0", "id": 7, "method": "variables", "params": {"variablesReference": 1001}}

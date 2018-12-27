@@ -112,9 +112,7 @@ function run()
   # reset all file line
   RunFileStack = []
   push!(RunFileStack, EntryFile)
-  for file in FileLine
-    FileLine[file] = 1
-  end
+  FileLine = Dict(EntryFile => 1)
   # start running program
   while true
     cmd = take!(kRunTimeIn)
@@ -151,6 +149,7 @@ function tryRunNewFile(ast, isStepOver = false)
     if !haskey(FileAst, filename)
       # in this case: no breakpoint has been set to this file
       # we just use eval to run include call
+      pirntln(RunFileStack[end])
       return false
     else
       # skip include call (we run it manually)
@@ -419,6 +418,9 @@ function checkBreakPoint()
   global FileBp
   current_file = RunFileStack[end]
   current_line = FileLine[RunFileStack[end]]
+  if !haskey(FileBp, current_file)
+    return false
+  end
   if current_line in FileBp[current_file]
     return true
   else

@@ -173,12 +173,6 @@ function stepOver()
   current_file = RunFileStack[end]
   asts = FileAst[current_file].asts
   ast_index = getAstIndex(current_file, FileLine[current_file])
-  #=
-  if ast_index == lastindex(asts) + 1
-    pop!(RunFileStack)
-    return length(RunFileStack) != 0
-  end
-  =#
   # run next line code
   if asts[ast_index] isa Nothing
     # if we find a blank line, we skip it
@@ -246,8 +240,10 @@ function continous(stopOnPopFile = false)
         return true
       else
         global errors
-        errors = string(err)
-        println("runtime errors: $(errors)")
+        errors = "runtime errors: $(current_file): $(FileLine[current_file]): $(err)"
+        println(errors)
+        put!(kRunTimeOut, "error")
+        return
       end
     end
     ast_index = getAstIndex(current_file, FileLine[current_file])

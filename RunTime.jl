@@ -112,6 +112,7 @@ function run()
   # reset all file line
   RunFileStack = []
   push!(RunFileStack, EntryFile)
+  cd(abspath(joinpath(EntryFile, "../")))
   FileLine = Dict(EntryFile => 1)
   # start running program
   while true
@@ -147,18 +148,14 @@ function tryRunNewFile(ast, isStepOver = false)
   end
   if isIncludeCall
     if !haskey(FileAst, filename)
-      # in this case: no breakpoint has been set to this file
-      # we just use eval to run include call
-      pirntln(RunFileStack[end])
-      return false
-    else
-      # skip include call (we run it manually)
-      println("detect include file: $(filename)")
-      updateLine()
-      push!(RunFileStack, filename)
-      FileLine[filename] = 1
-      continous(isStepOver)
+      readSourceToAST(filename)
     end
+    # skip include call (we run it manually)
+    println("detect include file: $(filename)")
+    updateLine()
+    push!(RunFileStack, filename)
+    FileLine[filename] = 1
+    continous(isStepOver)
   end
   return isIncludeCall
 end

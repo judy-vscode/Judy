@@ -42,14 +42,14 @@ function getMaxMin(arr)
   return min
 end
 
-cnt = 1
+cnt = 8
 query_arr = [] #
-while cnt <= 4
+while cnt >= 4
   global cnt
   global query_arr
   sub_arr = [cnt, cnt + 1, cnt + 2, cnt + 3] #
   push!(query_arr, sub_arr)
-  cnt += 1
+  cnt -= 1
 end
 
 res = getMaxMin(query_arr) #

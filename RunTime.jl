@@ -151,7 +151,6 @@ function tryRunNewFile(ast, isStepOver = false)
       readSourceToAST(filename)
     end
     # skip include call (we run it manually)
-    println("detect include file: $(filename)")
     updateLine()
     push!(RunFileStack, filename)
     FileLine[filename] = 1

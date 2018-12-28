@@ -61,7 +61,7 @@ and
 ``` julia
 a = 3
 ```
-are not block. Because the first can't be executed bu Julia (lack of end) and the second and third only have one line (which block requires multiple lines).
+are not blocks. Because the first can't be executed by Julia (lack of end) and the second and third only have one line (where block requires multiple lines).
 
 ### What Judy can
 

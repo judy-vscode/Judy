@@ -280,7 +280,7 @@ function inBlockBreak(file, lineno)
   global FileLine
   global kRunTimeIn
   global kRunTimeOut
-  println("hit breakpoint: $(file): $(lineno)")
+  println("hit breakpoint in block: $(file): $(lineno)")
   # collect variable info
   DebugInfo.collectVarInfo()
   # collect stack info
@@ -394,6 +394,7 @@ function updateLine()
       break
     end
   end
+  ofs = ofs > 1 ? ofs - 1 : ofs
   FileLine[current_file] += ofs
   # continue update until we meet a not empty line
   idx = getAstIndex(current_file, FileLine[current_file])

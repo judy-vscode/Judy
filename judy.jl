@@ -30,9 +30,7 @@ function run()
     if event isa Dict
       event = MsgHandler.eventCreate(event_method, event)
       print(client, event)
-      println(event)
     end
-
     flush(stdout)
   end
 
@@ -40,8 +38,4 @@ end
 
 end   # module debugger
 
-# open("log", "w") do out
-#   redirect_stdout(out)
-#   Connecter.run()
-# end
 Connecter.run()

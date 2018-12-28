@@ -4,7 +4,7 @@ Julia debugger for vscode (beta)
 
 ## Getting Started
 
-Judy are implemented in Julia. Judy now can only run with [judy-vscode](https://github.com/judy-vscode/Adapter). Although Judy can already run on Linux, judy-vscode now only provides supports with Windows.
+Judy are implemented in Julia. Judy now can only run with [judy-vscode](https://github.com/judy-vscode/Adapter). Although Judy can already run on Linux, it currently only provides supports with Windows.
 
 Below are the prerequisites to enable Judy running as the back-end for judy-vscode.
 
@@ -17,15 +17,15 @@ Below are the prerequisites to enable Judy running as the back-end for judy-vsco
   (Default Julia installation path should be at: C:\Users\xxx\AppData\Local\Julia-1.x.x\bin)
   ```
 
-* We support Julia version with 1.0.x. 
+* Julia version should be 1.0.x. 
 
-* Julia should enable porting 'JSON' pacakge. To test it, enable Julia REPL and type `import JSON`. If it fails to import, follow the instruction presented by Julia REPL to install this package.
+* Julia should be able to port 'JSON' pacakge. To test it, enable Julia REPL and type `import JSON`. If it fails to import, follow the instructions presented by Julia REPL to install this package.
 
 ### Installing
 
 * No need for installing. 
 
-* To make sure whether Judy can work, under `Judy/` and run (in powershell)
+* To make sure whether Judy can work, under `Judy/` run (in powershell)
   
   ```
   $julia judy.jl
@@ -37,7 +37,31 @@ Below are the prerequisites to enable Judy running as the back-end for judy-vsco
 
 Judy now is still in Beta, we will list what Judy can and what Judy can't.
 
-Word `block` will be used under this definition: If Julia can't run 
+For better understanding Judy's feature, word `block` will be used under this definition: A block consists of multiple source code lines and is the minimal set of codes which can be successfully executed by Julia. For example:
+
+``` julia
+if 5 > 3
+  println(5)
+else
+  println(3)
+end
+```
+
+is a block while:
+
+``` julia
+if 5 > 3
+  println(5)
+```
+and
+``` julia
+if 5 > 3
+```
+and
+``` julia
+a = 3
+```
+are not block. Because the first can't be executed bu Julia (lack of end) and the second and third only have one line (which block requires multiple lines).
 
 ### What Judy can
 
@@ -47,7 +71,7 @@ Word `block` will be used under this definition: If Julia can't run
 
 * Support watching variables and unrolling them on Main Global level.
 
-* Support setting breakpoints even the debuggee is running. (Setting new breakpoints inside blocks should make sure this block haven't been passed or on running)
+* Support setting breakpoints even the debuggee is running. (Setting new breakpoints inside blocks should make sure this block has not been passed or is on running)
 
 ### What Judy can't
 
@@ -57,44 +81,44 @@ Word `block` will be used under this definition: If Julia can't run
 
 * `step in` is not supported. (But you can set a breakpoint inside function definitions and use `continue` to step into functions)
 
-* Only `continue` can be enabled inside blocks (If you click `step over`, it will run as `continue`)
+* Only `continue` can be executed inside blocks (If you click `step over`, it will run as `continue`)
 
-* Currently we only support top-module (Main Module) debugging, which means if Judy is debuging inside your own module, it will only treat your module as a big block (so you may only be able to use continue.), and global variables inside this module will not be able to watch.
+* Currently we only support top-module (a.k.a. Main Module) debugging, which means if Judy is debugging inside your own module, it will only treat your module as a big block (so you may only use continue.), and global variables inside this module will not be able to watch.
 
 ## Running the tests
 
-All test files have been placed under `test/`. Script has been offered for testing Judy.
+All test files have been placed under `test/`. Script under each test file offers testing JSON message for Judy.
 
 ### Before Test
 
-It can be tested on Linux and Windows.
+It can be tested on both Linux and Windows.
 
 For Windows user, you need have [netcat](https://eternallybored.org/misc/netcat/) tools since our implementation is based on JSON RPC.
 
 JSON messeage consists of:
 
-  * Head: A number of eight digit in text to indicate how many characters with Body
+  * Head: A number in textual eight digit to indicate length of message Body
 
-  * Body: JSON body message including result, function definition.
+  * Body: JSON body message including result, path, calling function names.
 
 ### Test Steps
 
-* Create three terminals / powershells: We use t1, t2, t3 to denote them.
+* Create three terminals / powershells sessions: We use t1, t2, t3 to denote them.
   
-* Do following things under this order:
+* Do following steps in sequence:
   * t1: `nc -l 127.0.0.1 18001`
   * t2: `julia judy.jl`
   * t3: `nc 127.0.0.1 8000`
   
-* Whenever it needs input with filepath (such as breakpoints, launch method), change Json body to your file location (absolute path) and update corresponding JSON head
+* Whenever it needs input with file path (such as breakpoints, launch method), you should change JSON body's content to your file location (absolute path) and update corresponding JSON head
 
-* Copy the script line into t3, and don't enter `\n` in t3 since JSON RPC is not allowed `\n` for communication. (If you type `\n` you need to copy the next JSON message leaving the first character `0`)
+* Copy the script line into t3, but don't enter `\n` in t3 since JSON RPC is not allowed `\n` for communication. (If you type `\n` you need to copy the next JSON message without the first character `0`)
 
 * Type `\n` to oberserve the output in t1 and t2
 
 ## Contributing
 
-We are really welcome for all kinds of contributions!
+All kinds of contributions are highly welcomed!
 
 When contributing to this repository, please first discuss the change you wish to make via issue, email, or any other method with the owners of this repository before making a change.
 
@@ -103,3 +127,7 @@ When contributing to this repository, please first discuss the change you wish t
 * Zhiqi Lin (ralzq01@outlook.com)
 
 * Yu Xing
+
+## License
+
+This project is under MIT license.

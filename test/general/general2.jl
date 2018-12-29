@@ -1,6 +1,9 @@
 
+min = 0
+
 function getMin(arr)
 #
+  global min
   if length(arr) == 0
     return Nothing
   end

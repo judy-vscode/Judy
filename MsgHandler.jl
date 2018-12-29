@@ -34,7 +34,7 @@ function msgParse(msg)
   method = json_obj["method"]
   params = json_obj["params"]
 
-  println("recv id: $(id), method: $(method)")
+  # println("recv id: $(id), method: $(method)")
 
   return (id, method, params)
 

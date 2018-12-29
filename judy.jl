@@ -1,5 +1,5 @@
 
-module Connecter
+module Judy
 
 using Sockets
 import JSON
@@ -38,4 +38,4 @@ end
 
 end   # module debugger
 
-Connecter.run()
+Judy.run()

@@ -265,7 +265,7 @@ function Break()
   global kRunTimeIn
   global kRunTimeOut
   current_line = FileLine[RunFileStack[end]]
-  println("hit breakpoint: $(RunFileStack[end]): $(current_line)")
+  # println("hit breakpoint: $(RunFileStack[end]): $(current_line)")
   # collect variable info
   DebugInfo.collectVarInfo()
   # collect stack info
@@ -280,7 +280,7 @@ function inBlockBreak(file, lineno)
   global FileLine
   global kRunTimeIn
   global kRunTimeOut
-  println("hit breakpoint in block: $(file): $(lineno)")
+  # println("hit breakpoint in block: $(file): $(lineno)")
   # collect variable info
   DebugInfo.collectVarInfo()
   # collect stack info
@@ -357,7 +357,7 @@ function trySetBpInBlock(filepath, line)
               result = 2
             else
               result = 1
-              code_line = "Connecter.EventHandler.RunTime.inBlockBreak(\"$(input_path)\", $(line));" * code_line
+              code_line = "Judy.EventHandler.RunTime.inBlockBreak(\"$(input_path)\", $(line));" * code_line
             end
           catch err
             # some errors may cause when try to parse like `else`

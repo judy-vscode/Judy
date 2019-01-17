@@ -126,7 +126,7 @@ When contributing to this repository, please first discuss the change you wish t
 
 * Zhiqi Lin (ralzq01@outlook.com)
 
-* Yu Xing
+* Yu Xing (xyyimian@mail.ustc.edu.cn)
 
 ## License
 

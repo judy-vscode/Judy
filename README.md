@@ -2,6 +2,8 @@
 
 Julia debugger for vscode (beta)
 
+**Currently we have on plan for continuing this project**
+
 ## Getting Started
 
 Judy are implemented in Julia. Judy now can only run with [judy-vscode](https://github.com/judy-vscode/Adapter). Although Judy can already run on Linux, it currently only be used in Windows.
